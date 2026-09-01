@@ -11,12 +11,17 @@ pub struct RdpConnectionParams {
     pub username: Option<String>,
     pub password: Option<String>,
     pub domain: Option<String>,
+    pub ignore_cert: bool,
     pub width: u16,
     pub height: u16,
 }
 
 pub async fn handle_rdp_session(mut socket: WebSocket, params: RdpConnectionParams) {
     let addr = format!("{}:{}", params.host, params.port);
+    info!(
+        "RDP Gateway: Connecting to {} (ignore_tls_cert: {})",
+        addr, params.ignore_cert
+    );
 
     // Initial RDP Handshake notification
     let _ = socket

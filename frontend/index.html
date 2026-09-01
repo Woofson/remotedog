@@ -474,6 +474,27 @@
               <textarea id="conn-private-key" class="form-input" rows="3" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" style="font-family: var(--font-mono); font-size: 11px;"></textarea>
             </div>
 
+            <!-- RDP / Windows & TLS Settings -->
+            <div id="group-rdp-settings" style="display: none; background: var(--woofson-bg-header, #202024); padding: 12px; border-radius: var(--radius-md, 6px); border: 1px solid var(--woofson-border, #3f3f46); display: flex; flex-direction: column; gap: 10px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--woofson-accent, #f59e0b); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <span>RDP & TLS Certificate Security</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px;">
+                <div class="form-group">
+                  <label style="font-size: 11px; font-weight: 600;">TLS / SSL Certificate Trust</label>
+                  <select id="conn-rdp-ignore-cert" class="form-input">
+                    <option value="true" selected>✅ Always Trust (Ignore Self-Signed & Untrusted Certs)</option>
+                    <option value="false">🔒 Strict TLS Verification</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label style="font-size: 11px; font-weight: 600;">Domain / Workgroup</label>
+                  <input type="text" id="conn-rdp-domain" class="form-input" placeholder="e.g. WORKGROUP" />
+                </div>
+              </div>
+            </div>
+
             <!-- Security & RBAC Policy Section -->
             <div style="background: var(--woofson-bg-header, #202024); padding: 12px; border-radius: var(--radius-md, 6px); border: 1px solid var(--woofson-border, #3f3f46); display: flex; flex-direction: column; gap: 10px;">
               <div style="font-size: 11px; font-weight: 700; color: var(--woofson-accent, #f59e0b); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">

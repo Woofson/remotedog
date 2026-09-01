@@ -546,6 +546,11 @@ function openAddConnectionModal() {
   document.getElementById('conn-allow-transfer').value = 'full';
   document.getElementById('conn-view-only').value = 'false';
 
+  const ignoreCertEl = document.getElementById('conn-rdp-ignore-cert');
+  if (ignoreCertEl) ignoreCertEl.value = 'true';
+  const domainEl = document.getElementById('conn-rdp-domain');
+  if (domainEl) domainEl.value = '';
+
   onProtocolChanged();
   document.getElementById('connection-edit-modal').style.display = 'flex';
 }
@@ -579,6 +584,15 @@ function openEditConnectionModal(id) {
   document.getElementById('conn-allow-transfer').value = c.allow_transfer || 'full';
   document.getElementById('conn-view-only').value = c.view_only ? 'true' : 'false';
 
+  let settings = {};
+  try {
+    if (c.settings_json) settings = JSON.parse(c.settings_json);
+  } catch (err) {}
+  const ignoreCertEl = document.getElementById('conn-rdp-ignore-cert');
+  if (ignoreCertEl) ignoreCertEl.value = (settings.ignore_cert !== false) ? 'true' : 'false';
+  const domainEl = document.getElementById('conn-rdp-domain');
+  if (domainEl) domainEl.value = settings.domain || '';
+
   onProtocolChanged();
   document.getElementById('connection-edit-modal').style.display = 'flex';
 }
@@ -591,11 +605,15 @@ function onProtocolChanged() {
   const proto = document.getElementById('conn-protocol').value;
   const isLocal = proto === 'local_pty';
   const isSsh = proto === 'ssh';
+  const isRdp = proto === 'rdp';
 
   document.getElementById('group-host').style.display = isLocal ? 'none' : 'block';
   document.getElementById('group-port').style.display = isLocal ? 'none' : 'block';
   document.getElementById('group-auth-user').style.display = isLocal ? 'none' : 'grid';
   document.getElementById('group-ssh-key').style.display = isSsh ? 'block' : 'none';
+
+  const rdpGroup = document.getElementById('group-rdp-settings');
+  if (rdpGroup) rdpGroup.style.display = isRdp ? 'flex' : 'none';
 
   if (proto === 'vnc') document.getElementById('conn-port').value = '5900';
   if (proto === 'rdp') document.getElementById('conn-port').value = '3389';
@@ -607,6 +625,11 @@ async function handleSaveConnection(e) {
   const id = document.getElementById('conn-id').value;
   const isGlobalVal = document.getElementById('conn-is-global') ? document.getElementById('conn-is-global').value === 'true' : true;
 
+  const rdpSettings = {
+    ignore_cert: document.getElementById('conn-rdp-ignore-cert') ? document.getElementById('conn-rdp-ignore-cert').value === 'true' : true,
+    domain: document.getElementById('conn-rdp-domain') ? document.getElementById('conn-rdp-domain').value.trim() || null : null,
+  };
+
   const payload = {
     name: document.getElementById('conn-name').value.trim(),
     protocol: document.getElementById('conn-protocol').value,
@@ -616,6 +639,7 @@ async function handleSaveConnection(e) {
     password: document.getElementById('conn-password').value || null,
     private_key: document.getElementById('conn-private-key').value || null,
     tags: document.getElementById('conn-tags').value.trim() || null,
+    settings_json: JSON.stringify(rdpSettings),
     is_global: isGlobalVal,
     allow_clipboard: document.getElementById('conn-allow-clipboard').value,
     allow_transfer: document.getElementById('conn-allow-transfer').value,

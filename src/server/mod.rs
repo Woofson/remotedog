@@ -1369,12 +1369,26 @@ pub async fn ws_tunnel_handler(
                 handle_vnc_session(socket, params).await;
             }
             "rdp" => {
+                let mut ignore_cert = true;
+                let mut domain = None;
+                if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&conn_rec.settings_json) {
+                    if let Some(ic) = settings.get("ignore_cert").and_then(|v| v.as_bool()) {
+                        ignore_cert = ic;
+                    }
+                    if let Some(d) = settings.get("domain").and_then(|v| v.as_str()) {
+                        if !d.trim().is_empty() {
+                            domain = Some(d.trim().to_string());
+                        }
+                    }
+                }
+
                 let params = RdpConnectionParams {
                     host: conn_rec.host,
                     port: conn_rec.port,
                     username: conn_rec.username,
                     password,
-                    domain: None,
+                    domain,
+                    ignore_cert,
                     width: 1920,
                     height: 1080,
                 };
