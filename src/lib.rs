@@ -4,3 +4,127 @@ pub mod db;
 pub mod protocols;
 pub mod server;
 pub mod transfer;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use db::{Database, ConnectionRecord, User};
+    use uuid::Uuid;
+
+    #[test]
+    fn test_granular_connection_rbac_and_isolation() {
+        let db = Database::new_in_memory().expect("failed to create in-memory db");
+
+        let admin_user = User {
+            id: Uuid::new_v4().to_string(),
+            username: "admin".into(),
+            password_hash: "hash".into(),
+            email: Some("admin@remotedog.local".into()),
+            display_name: Some("Administrator".into()),
+            role: "admin".into(),
+            is_active: true,
+            auth_provider: "local".into(),
+            oidc_sub: None,
+            created_at: "2026-09-01T00:00:00Z".into(),
+            last_login: None,
+            avatar_data: None,
+        };
+
+        let operator_a = User {
+            id: Uuid::new_v4().to_string(),
+            username: "alice".into(),
+            password_hash: "hash".into(),
+            email: Some("alice@domain.com".into()),
+            display_name: Some("Alice".into()),
+            role: "operator".into(),
+            is_active: true,
+            auth_provider: "local".into(),
+            oidc_sub: None,
+            created_at: "2026-09-01T00:00:00Z".into(),
+            last_login: None,
+            avatar_data: None,
+        };
+
+        let operator_b = User {
+            id: Uuid::new_v4().to_string(),
+            username: "bob".into(),
+            password_hash: "hash".into(),
+            email: Some("bob@domain.com".into()),
+            display_name: Some("Bob".into()),
+            role: "operator".into(),
+            is_active: true,
+            auth_provider: "local".into(),
+            oidc_sub: None,
+            created_at: "2026-09-01T00:00:00Z".into(),
+            last_login: None,
+            avatar_data: None,
+        };
+
+        // 1. Global shared connection created by Admin with View-Only policy
+        let global_conn = ConnectionRecord {
+            id: Uuid::new_v4().to_string(),
+            name: "Global Web Monitor".into(),
+            protocol: "vnc".into(),
+            host: "10.0.0.1".into(),
+            port: 5900,
+            username: Some("viewer".into()),
+            password_enc: None,
+            private_key_enc: None,
+            settings_json: "{}".into(),
+            icon: None,
+            tags: Some("monitor".into()),
+            is_global: true,
+            allow_clipboard: "host_to_remote".into(),
+            allow_transfer: "disabled".into(),
+            view_only: true,
+            created_by: Some(admin_user.id.clone()),
+            created_at: "2026-09-01T00:00:00Z".into(),
+            updated_at: "2026-09-01T00:00:00Z".into(),
+        };
+        db.save_connection(&global_conn).expect("save global conn");
+
+        // 2. Personal private connection created by Alice
+        let alice_conn = ConnectionRecord {
+            id: Uuid::new_v4().to_string(),
+            name: "Alice Private Bastion".into(),
+            protocol: "ssh".into(),
+            host: "10.0.0.2".into(),
+            port: 22,
+            username: Some("alice".into()),
+            password_enc: None,
+            private_key_enc: None,
+            settings_json: "{}".into(),
+            icon: None,
+            tags: Some("personal".into()),
+            is_global: false,
+            allow_clipboard: "bidirectional".into(),
+            allow_transfer: "full".into(),
+            view_only: false,
+            created_by: Some(operator_a.id.clone()),
+            created_at: "2026-09-01T00:00:00Z".into(),
+            updated_at: "2026-09-01T00:00:00Z".into(),
+        };
+        db.save_connection(&alice_conn).expect("save alice conn");
+
+        // Admin should see BOTH global and personal connections
+        let admin_list = db.list_connections_for_user(&admin_user).expect("list admin");
+        assert_eq!(admin_list.len(), 2);
+
+        // Alice should see Global + her own Personal connection
+        let alice_list = db.list_connections_for_user(&operator_a).expect("list alice");
+        assert_eq!(alice_list.len(), 2);
+        let alice_bastion = alice_list.iter().find(|c| c.id == alice_conn.id).expect("found alice conn");
+        assert!(alice_bastion.user_permissions.can_edit);
+        assert!(!alice_bastion.is_global);
+
+        // Bob should ONLY see the Global connection (Alice's personal connection is isolated!)
+        let bob_list = db.list_connections_for_user(&operator_b).expect("list bob");
+        assert_eq!(bob_list.len(), 1);
+        assert_eq!(bob_list[0].id, global_conn.id);
+        assert!(!bob_list[0].user_permissions.can_edit); // Non-admin cannot edit global conn
+        assert!(bob_list[0].is_global);
+        assert!(bob_list[0].view_only);
+        assert_eq!(bob_list[0].allow_clipboard, "host_to_remote");
+        assert_eq!(bob_list[0].allow_transfer, "disabled");
+    }
+}

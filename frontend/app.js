@@ -424,39 +424,100 @@ function closeConnectionsModal() {
   document.getElementById('connections-modal').style.display = 'none';
 }
 
+function filterConnectionList(filter) {
+  state.connectionFilter = filter;
+  ['all', 'global', 'personal'].forEach(f => {
+    const btn = document.getElementById(`filter-conn-${f}`);
+    if (btn) {
+      btn.className = (f === filter) ? 'btn btn-sm active' : 'btn btn-sm btn-secondary';
+    }
+  });
+  renderConnectionsTable();
+}
+
+function onSearchConnections(query) {
+  state.connectionSearch = (query || '').toLowerCase().trim();
+  renderConnectionsTable();
+}
+
 function renderConnectionsTable() {
   const tbody = document.getElementById('connections-table-body');
   if (!tbody) return;
 
-  if (state.connections.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">No connections configured yet. Click "+ New Connection" to create one.</td></tr>`;
+  const currentFilter = state.connectionFilter || 'all';
+  const query = state.connectionSearch || '';
+
+  const filtered = state.connections.filter(c => {
+    if (currentFilter === 'global' && !c.is_global) return false;
+    if (currentFilter === 'personal' && c.is_global) return false;
+    if (query) {
+      const matchName = c.name && c.name.toLowerCase().includes(query);
+      const matchHost = c.host && c.host.toLowerCase().includes(query);
+      const matchTags = c.tags && c.tags.toLowerCase().includes(query);
+      const matchProto = c.protocol && c.protocol.toLowerCase().includes(query);
+      if (!matchName && !matchHost && !matchTags && !matchProto) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">No matching connections found.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = state.connections
-    .map(c => `
-      <tr>
-        <td><strong>${escapeHtml(c.name)}</strong></td>
-        <td><span class="pane-protocol-badge">${c.protocol.toUpperCase()}</span></td>
-        <td><code>${c.protocol === 'local_pty' ? 'Local Host' : `${escapeHtml(c.host)}:${c.port}`}</code></td>
-        <td>${escapeHtml(c.username || '—')}</td>
-        <td>${c.tags ? `<span class="badge-count">${escapeHtml(c.tags)}</span>` : '—'}</td>
-        <td>
-          <div style="display:flex;gap:4px;">
-            <button class="btn btn-primary btn-sm" onclick="connectToTarget('${c.id}')">Connect [ ${state.activePaneIndex} ]</button>
-            ${c.user_permissions.can_edit ? `
-              <button class="btn btn-secondary btn-sm" onclick="openEditConnectionModal('${c.id}')">Edit</button>
-              <button class="btn btn-secondary btn-sm text-danger" onclick="deleteConnection('${c.id}')">Delete</button>
-            ` : ''}
-          </div>
-        </td>
-      </tr>
-    `)
+  tbody.innerHTML = filtered
+    .map(c => {
+      const scopeBadge = c.is_global
+        ? `<span style="color: #f59e0b; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">🌐 GLOBAL</span>`
+        : `<span style="color: #38bdf8; background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;">🔒 PERSONAL</span>`;
+
+      const modeBadge = c.view_only
+        ? `<span style="color: #f59e0b; font-size: 10px; font-weight: 600; margin-right: 6px;" title="View-Only / Observer Mode">👁️ View</span>`
+        : `<span style="color: #10b981; font-size: 10px; font-weight: 600; margin-right: 6px;" title="Full Interactive Mode">⚡ Active</span>`;
+
+      const clipBadge = c.allow_clipboard === 'disabled'
+        ? `<span style="color: #ef4444; font-size: 10px; margin-right: 6px;" title="Clipboard Blocked">🚫 Clip</span>`
+        : c.allow_clipboard === 'host_to_remote'
+        ? `<span style="color: #38bdf8; font-size: 10px; margin-right: 6px;" title="Paste Only">📥 Paste</span>`
+        : `<span style="color: #a1a1aa; font-size: 10px; margin-right: 6px;" title="Bidirectional Clipboard">📋 Clip</span>`;
+
+      const transBadge = c.allow_transfer === 'disabled'
+        ? `<span style="color: #ef4444; font-size: 10px;" title="Transfers Blocked">🚫 Files</span>`
+        : `<span style="color: #a1a1aa; font-size: 10px;" title="File Transfers Allowed">📁 Files</span>`;
+
+      return `
+        <tr>
+          <td>${scopeBadge}</td>
+          <td>
+            <strong>${escapeHtml(c.name)}</strong>
+            ${c.tags ? `<span class="badge-count" style="margin-left: 6px;">${escapeHtml(c.tags)}</span>` : ''}
+          </td>
+          <td><span class="pane-protocol-badge">${c.protocol.toUpperCase()}</span></td>
+          <td><code>${c.protocol === 'local_pty' ? 'Local System' : `${escapeHtml(c.host)}:${c.port}`}</code></td>
+          <td>
+            <div style="display: flex; align-items: center;">
+              ${modeBadge}
+              ${clipBadge}
+              ${transBadge}
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-primary btn-sm" onclick="connectToTarget('${c.id}')">Connect [ ${state.activePaneIndex} ]</button>
+              ${c.user_permissions && c.user_permissions.can_edit ? `
+                <button class="btn btn-secondary btn-sm" onclick="openEditConnectionModal('${c.id}')">Edit</button>
+                <button class="btn btn-secondary btn-sm text-danger" onclick="deleteConnection('${c.id}')">Delete</button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    })
     .join('');
 }
 
 function openAddConnectionModal() {
-  document.getElementById('connection-edit-title').textContent = 'New Connection';
+  document.getElementById('connection-edit-title').textContent = 'New Connection Target';
   document.getElementById('conn-id').value = '';
   document.getElementById('conn-name').value = '';
   document.getElementById('conn-protocol').value = 'ssh';
@@ -466,6 +527,21 @@ function openAddConnectionModal() {
   document.getElementById('conn-password').value = '';
   document.getElementById('conn-private-key').value = '';
   document.getElementById('conn-tags').value = '';
+
+  const isAdm = state.currentUser && state.currentUser.role === 'admin';
+  const scopeEl = document.getElementById('conn-is-global');
+  if (scopeEl) {
+    scopeEl.value = isAdm ? 'true' : 'false';
+  }
+  const scopeGroup = document.getElementById('group-conn-scope');
+  if (scopeGroup) {
+    scopeGroup.style.display = isAdm ? 'block' : 'none';
+  }
+
+  document.getElementById('conn-allow-clipboard').value = 'bidirectional';
+  document.getElementById('conn-allow-transfer').value = 'full';
+  document.getElementById('conn-view-only').value = 'false';
+
   onProtocolChanged();
   document.getElementById('connection-edit-modal').style.display = 'flex';
 }
@@ -474,7 +550,7 @@ function openEditConnectionModal(id) {
   const c = state.connections.find(item => item.id === id);
   if (!c) return;
 
-  document.getElementById('connection-edit-title').textContent = `Edit Connection — ${c.name}`;
+  document.getElementById('connection-edit-title').textContent = `Edit Target — ${c.name}`;
   document.getElementById('conn-id').value = c.id;
   document.getElementById('conn-name').value = c.name;
   document.getElementById('conn-protocol').value = c.protocol;
@@ -484,6 +560,21 @@ function openEditConnectionModal(id) {
   document.getElementById('conn-password').value = '';
   document.getElementById('conn-private-key').value = '';
   document.getElementById('conn-tags').value = c.tags || '';
+
+  const isAdm = state.currentUser && state.currentUser.role === 'admin';
+  const scopeEl = document.getElementById('conn-is-global');
+  if (scopeEl) {
+    scopeEl.value = c.is_global ? 'true' : 'false';
+  }
+  const scopeGroup = document.getElementById('group-conn-scope');
+  if (scopeGroup) {
+    scopeGroup.style.display = isAdm ? 'block' : 'none';
+  }
+
+  document.getElementById('conn-allow-clipboard').value = c.allow_clipboard || 'bidirectional';
+  document.getElementById('conn-allow-transfer').value = c.allow_transfer || 'full';
+  document.getElementById('conn-view-only').value = c.view_only ? 'true' : 'false';
+
   onProtocolChanged();
   document.getElementById('connection-edit-modal').style.display = 'flex';
 }
@@ -499,7 +590,7 @@ function onProtocolChanged() {
 
   document.getElementById('group-host').style.display = isLocal ? 'none' : 'block';
   document.getElementById('group-port').style.display = isLocal ? 'none' : 'block';
-  document.getElementById('group-auth-user').style.display = isLocal ? 'none' : 'flex';
+  document.getElementById('group-auth-user').style.display = isLocal ? 'none' : 'grid';
   document.getElementById('group-ssh-key').style.display = isSsh ? 'block' : 'none';
 
   if (proto === 'vnc') document.getElementById('conn-port').value = '5900';
@@ -510,6 +601,8 @@ function onProtocolChanged() {
 async function handleSaveConnection(e) {
   e.preventDefault();
   const id = document.getElementById('conn-id').value;
+  const isGlobalVal = document.getElementById('conn-is-global') ? document.getElementById('conn-is-global').value === 'true' : true;
+
   const payload = {
     name: document.getElementById('conn-name').value.trim(),
     protocol: document.getElementById('conn-protocol').value,
@@ -519,6 +612,10 @@ async function handleSaveConnection(e) {
     password: document.getElementById('conn-password').value || null,
     private_key: document.getElementById('conn-private-key').value || null,
     tags: document.getElementById('conn-tags').value.trim() || null,
+    is_global: isGlobalVal,
+    allow_clipboard: document.getElementById('conn-allow-clipboard').value,
+    allow_transfer: document.getElementById('conn-allow-transfer').value,
+    view_only: document.getElementById('conn-view-only').value === 'true',
   };
 
   const url = id ? `/api/connections/${id}` : '/api/connections';
@@ -535,7 +632,7 @@ async function handleSaveConnection(e) {
     });
 
     if (res.ok) {
-      showToast(id ? 'Connection updated!' : 'Connection created!');
+      showToast(id ? 'Connection updated!' : 'Connection created!', 'success');
       closeConnectionEditModal();
       await loadConnections();
     } else {
@@ -579,7 +676,11 @@ function connectToTarget(connectionId) {
   const bodyEl = document.getElementById(`pane-${paneIndex}-body`);
   const statsEl = document.getElementById(`pane-${paneIndex}-stats`);
 
-  titleEl.textContent = conn.name;
+  const viewOnlyTag = conn.view_only
+    ? ` <span style="font-size: 9px; padding: 2px 5px; background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4); color: var(--woofson-accent); border-radius: 3px; font-weight: 700; margin-left: 6px;">VIEW-ONLY</span>`
+    : '';
+
+  titleEl.innerHTML = `${escapeHtml(conn.name)}${viewOnlyTag}`;
   protoBadge.textContent = conn.protocol.toUpperCase();
   protoBadge.style.display = 'inline-block';
   statsEl.style.display = 'inline-block';
@@ -603,7 +704,7 @@ function connectToTarget(connectionId) {
     statsEl.textContent = `${latency} ms`;
     showToast(`Connected to ${conn.name} [Pane ${paneIndex}]`);
 
-    if (conn.protocol === 'ssh') {
+    if (conn.protocol === 'ssh' && conn.allow_transfer !== 'disabled') {
       loadSftpDirectory(paneIndex, '.');
     }
   };
@@ -655,6 +756,7 @@ function setupTerminalProtocol(pane, ws, bodyEl) {
   // Terminal Keyboard Capture
   term.addEventListener('keydown', (e) => {
     if (ws.readyState !== WebSocket.OPEN) return;
+    if (pane.conn && pane.conn.view_only) return;
 
     if (e.key === 'Enter') {
       ws.send('\r');
@@ -692,6 +794,10 @@ function setupTerminalProtocol(pane, ws, bodyEl) {
   // Global Clipboard paste into terminal
   term.addEventListener('paste', (e) => {
     e.preventDefault();
+    if (pane.conn && (pane.conn.view_only || pane.conn.allow_clipboard === 'disabled' || pane.conn.allow_clipboard === 'remote_to_host')) {
+      showToast('Clipboard paste blocked by connection policy', 'warning');
+      return;
+    }
     const text = (e.clipboardData || window.clipboardData).getData('text');
     if (text && ws.readyState === WebSocket.OPEN) {
       ws.send(text);
@@ -740,7 +846,9 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
           ctx.fillStyle = '#000000';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         } else if (msg.type === 'clipboard_sync') {
-          onRemoteClipboardSync(msg.text);
+          if (!pane.conn || pane.conn.allow_clipboard !== 'disabled' && pane.conn.allow_clipboard !== 'host_to_remote') {
+            onRemoteClipboardSync(msg.text);
+          }
         } else if (msg.type === 'error') {
           showToast(`RFB Error: ${msg.message}`, 'danger');
         }
@@ -777,6 +885,7 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
   // Mouse Inputs
   function sendPointer(mask, x, y) {
     if (ws.readyState !== WebSocket.OPEN) return;
+    if (pane.conn && pane.conn.view_only) return;
     const buf = new ArrayBuffer(6);
     const dv = new DataView(buf);
     dv.setUint8(0, 0x02); // POINTER_EVENT
@@ -833,6 +942,7 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
   // Key Inputs (RFB Keysyms)
   function sendKey(down, keysym) {
     if (ws.readyState !== WebSocket.OPEN) return;
+    if (pane.conn && pane.conn.view_only) return;
     const buf = new ArrayBuffer(6);
     const dv = new DataView(buf);
     dv.setUint8(0, 0x04); // KEY_EVENT

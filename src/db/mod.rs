@@ -80,6 +80,10 @@ pub struct ConnectionRecord {
     pub settings_json: String,
     pub icon: Option<String>,
     pub tags: Option<String>,
+    pub is_global: bool,
+    pub allow_clipboard: String, // "bidirectional", "host_to_remote", "remote_to_host", "disabled"
+    pub allow_transfer: String,  // "full", "upload_only", "download_only", "disabled"
+    pub view_only: bool,
     pub created_by: Option<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -98,6 +102,10 @@ pub struct ConnectionSafe {
     pub settings_json: String,
     pub icon: Option<String>,
     pub tags: Option<String>,
+    pub is_global: bool,
+    pub allow_clipboard: String,
+    pub allow_transfer: String,
+    pub view_only: bool,
     pub created_by: Option<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -174,6 +182,19 @@ impl Database {
         Ok(db)
     }
 
+    pub fn new_in_memory() -> SqlResult<Self> {
+        let conn = SqliteConnection::open_in_memory()?;
+        conn.execute_batch(
+            "PRAGMA foreign_keys = ON;",
+        )?;
+
+        let db = Self {
+            conn: Arc::new(Mutex::new(conn)),
+        };
+        db.init_schema()?;
+        Ok(db)
+    }
+
     fn init_schema(&self) -> SqlResult<()> {
         let conn = self.conn.lock();
         conn.execute_batch(
@@ -217,6 +238,10 @@ impl Database {
                 settings_json TEXT NOT NULL DEFAULT '{}',
                 icon TEXT,
                 tags TEXT,
+                is_global INTEGER NOT NULL DEFAULT 1,
+                allow_clipboard TEXT NOT NULL DEFAULT 'bidirectional',
+                allow_transfer TEXT NOT NULL DEFAULT 'full',
+                view_only INTEGER NOT NULL DEFAULT 0,
                 created_by TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
@@ -264,6 +289,7 @@ impl Database {
 
             CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp);
             CREATE INDEX IF NOT EXISTS idx_connections_protocol ON connections(protocol);
+            CREATE INDEX IF NOT EXISTS idx_connections_global ON connections(is_global);
             ",
         )?;
 
@@ -271,6 +297,10 @@ impl Database {
         let _ = conn.execute("ALTER TABLE users ADD COLUMN avatar_data TEXT;", []);
         let _ = conn.execute("UPDATE users SET display_name = 'admin' WHERE username = 'admin' AND display_name = 'Administrator';", []);
         let _ = conn.execute("UPDATE users SET email = 'admin@remotedog.local' WHERE username = 'admin' AND (email IS NULL OR email = '');", []);
+        let _ = conn.execute("ALTER TABLE connections ADD COLUMN is_global INTEGER NOT NULL DEFAULT 1;", []);
+        let _ = conn.execute("ALTER TABLE connections ADD COLUMN allow_clipboard TEXT NOT NULL DEFAULT 'bidirectional';", []);
+        let _ = conn.execute("ALTER TABLE connections ADD COLUMN allow_transfer TEXT NOT NULL DEFAULT 'full';", []);
+        let _ = conn.execute("ALTER TABLE connections ADD COLUMN view_only INTEGER NOT NULL DEFAULT 0;", []);
 
         Ok(())
     }
@@ -524,43 +554,83 @@ impl Database {
             "SELECT id, name, protocol, host, port, username, 
                     (password_enc IS NOT NULL AND password_enc != '') as has_pw,
                     (private_key_enc IS NOT NULL AND private_key_enc != '') as has_key,
-                    settings_json, icon, tags, created_by, created_at, updated_at
-             FROM connections ORDER BY name ASC",
+                    settings_json, icon, tags, is_global, allow_clipboard, allow_transfer, view_only,
+                    created_by, created_at, updated_at
+             FROM connections
+             WHERE (?1 = 1) OR (is_global = 1) OR (created_by = ?2)
+                OR (id IN (SELECT connection_id FROM connection_permissions cp 
+                           LEFT JOIN user_groups ug ON ug.group_id = cp.group_id 
+                           WHERE cp.user_id = ?2 OR ug.user_id = ?2))
+             ORDER BY is_global DESC, name ASC",
         )?;
 
-        let rows = stmt.query_map([], |row| {
+        let rows = stmt.query_map(params![if is_admin { 1 } else { 0 }, user.id], |row| {
             let conn_id: String = row.get(0)?;
             Ok((
                 conn_id,
-                row.get(1)?,
-                row.get(2)?,
-                row.get(3)?,
-                row.get(4)?,
-                row.get(5)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, u16>(4)?,
+                row.get::<_, Option<String>>(5)?,
                 row.get::<_, i64>(6)? != 0,
                 row.get::<_, i64>(7)? != 0,
-                row.get(8)?,
-                row.get(9)?,
-                row.get(10)?,
-                row.get(11)?,
-                row.get(12)?,
-                row.get(13)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, Option<String>>(9)?,
+                row.get::<_, Option<String>>(10)?,
+                row.get::<_, i64>(11)? != 0,
+                row.get::<_, String>(12).unwrap_or_else(|_| "bidirectional".into()),
+                row.get::<_, String>(13).unwrap_or_else(|_| "full".into()),
+                row.get::<_, i64>(14)? != 0,
+                row.get::<_, Option<String>>(15)?,
+                row.get::<_, String>(16)?,
+                row.get::<_, String>(17)?,
             ))
         })?;
 
         let mut connections = Vec::new();
         for r in rows {
-            let (id, name, protocol, host, port, username, has_pw, has_key, settings_json, icon, tags, created_by, created_at, updated_at) = r?;
+            let (
+                id,
+                name,
+                protocol,
+                host,
+                port,
+                username,
+                has_pw,
+                has_key,
+                settings_json,
+                icon,
+                tags,
+                is_global,
+                allow_clipboard,
+                allow_transfer,
+                view_only,
+                created_by,
+                created_at,
+                updated_at,
+            ) = r?;
+
+            let is_owner = created_by.as_deref() == Some(&user.id);
+            let can_clipboard_val = allow_clipboard != "disabled";
+            let can_transfer_val = allow_transfer != "disabled";
 
             let perms = if is_admin {
                 ConnectionUserPerms {
                     can_connect: true,
                     can_edit: true,
-                    can_clipboard: true,
-                    can_transfer: true,
+                    can_clipboard: can_clipboard_val,
+                    can_transfer: can_transfer_val,
+                }
+            } else if is_owner {
+                ConnectionUserPerms {
+                    can_connect: true,
+                    can_edit: true,
+                    can_clipboard: can_clipboard_val,
+                    can_transfer: can_transfer_val,
                 }
             } else {
-                // Check granular permissions for this user or their groups
+                // Check granular permissions if defined
                 let mut p_stmt = conn.prepare(
                     "SELECT cp.can_connect, cp.can_edit, cp.can_clipboard, cp.can_transfer 
                      FROM connection_permissions cp
@@ -568,34 +638,23 @@ impl Database {
                      WHERE cp.connection_id = ?1 AND (cp.user_id = ?2 OR ug.user_id = ?2)",
                 )?;
                 let mut p_rows = p_stmt.query(params![id, user.id])?;
-                let mut user_perms = ConnectionUserPerms::default();
+                let mut user_perms = ConnectionUserPerms {
+                    can_connect: true,
+                    can_edit: false,
+                    can_clipboard: can_clipboard_val,
+                    can_transfer: can_transfer_val,
+                };
                 let mut found = false;
                 while let Some(p_row) = p_rows.next()? {
                     found = true;
                     if p_row.get::<_, i64>(0)? != 0 { user_perms.can_connect = true; }
                     if p_row.get::<_, i64>(1)? != 0 { user_perms.can_edit = true; }
-                    if p_row.get::<_, i64>(2)? != 0 { user_perms.can_clipboard = true; }
-                    if p_row.get::<_, i64>(3)? != 0 { user_perms.can_transfer = true; }
+                    if p_row.get::<_, i64>(2)? == 0 { user_perms.can_clipboard = false; }
+                    if p_row.get::<_, i64>(3)? == 0 { user_perms.can_transfer = false; }
                 }
 
-                if !found {
-                    // Default open to operators if no explicit restrictive permissions are defined
-                    let count_perms: i64 = conn.query_row(
-                        "SELECT COUNT(*) FROM connection_permissions WHERE connection_id = ?1",
-                        params![id],
-                        |row| row.get(0),
-                    )?;
-                    if count_perms == 0 {
-                        user_perms = ConnectionUserPerms {
-                            can_connect: true,
-                            can_edit: user.role == "operator",
-                            can_clipboard: true,
-                            can_transfer: true,
-                        };
-                    } else {
-                        // Permissions exist but user is not allowed
-                        continue;
-                    }
+                if !found && !is_global {
+                    continue;
                 }
                 user_perms
             };
@@ -612,6 +671,10 @@ impl Database {
                 settings_json,
                 icon,
                 tags,
+                is_global,
+                allow_clipboard,
+                allow_transfer,
+                view_only,
                 created_by,
                 created_at,
                 updated_at,
@@ -625,26 +688,32 @@ impl Database {
     pub fn get_connection_raw(&self, id: &str) -> SqlResult<Option<ConnectionRecord>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, name, protocol, host, port, username, password_enc, private_key_enc, settings_json, icon, tags, created_by, created_at, updated_at
+            "SELECT id, name, protocol, host, port, username, password_enc, private_key_enc, 
+                    settings_json, icon, tags, is_global, allow_clipboard, allow_transfer, view_only,
+                    created_by, created_at, updated_at
              FROM connections WHERE id = ?1",
         )?;
         let mut rows = stmt.query(params![id])?;
         if let Some(row) = rows.next()? {
             Ok(Some(ConnectionRecord {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                protocol: row.get(2)?,
-                host: row.get(3)?,
-                port: row.get(4)?,
-                username: row.get(5)?,
-                password_enc: row.get(6)?,
-                private_key_enc: row.get(7)?,
-                settings_json: row.get(8)?,
-                icon: row.get(9)?,
-                tags: row.get(10)?,
-                created_by: row.get(11)?,
-                created_at: row.get(12)?,
-                updated_at: row.get(13)?,
+                id: row.get::<_, String>(0)?,
+                name: row.get::<_, String>(1)?,
+                protocol: row.get::<_, String>(2)?,
+                host: row.get::<_, String>(3)?,
+                port: row.get::<_, u16>(4)?,
+                username: row.get::<_, Option<String>>(5)?,
+                password_enc: row.get::<_, Option<String>>(6)?,
+                private_key_enc: row.get::<_, Option<String>>(7)?,
+                settings_json: row.get::<_, String>(8)?,
+                icon: row.get::<_, Option<String>>(9)?,
+                tags: row.get::<_, Option<String>>(10)?,
+                is_global: row.get::<_, i64>(11)? != 0,
+                allow_clipboard: row.get::<_, String>(12).unwrap_or_else(|_| "bidirectional".into()),
+                allow_transfer: row.get::<_, String>(13).unwrap_or_else(|_| "full".into()),
+                view_only: row.get::<_, i64>(14)? != 0,
+                created_by: row.get::<_, Option<String>>(15)?,
+                created_at: row.get::<_, String>(16)?,
+                updated_at: row.get::<_, String>(17)?,
             }))
         } else {
             Ok(None)
@@ -654,8 +723,12 @@ impl Database {
     pub fn save_connection(&self, record: &ConnectionRecord) -> SqlResult<()> {
         let conn = self.conn.lock();
         conn.execute(
-            "INSERT INTO connections (id, name, protocol, host, port, username, password_enc, private_key_enc, settings_json, icon, tags, created_by, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+            "INSERT INTO connections (
+                id, name, protocol, host, port, username, password_enc, private_key_enc,
+                settings_json, icon, tags, is_global, allow_clipboard, allow_transfer, view_only,
+                created_by, created_at, updated_at
+             )
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)
              ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 protocol = excluded.protocol,
@@ -667,6 +740,10 @@ impl Database {
                 settings_json = excluded.settings_json,
                 icon = excluded.icon,
                 tags = excluded.tags,
+                is_global = excluded.is_global,
+                allow_clipboard = excluded.allow_clipboard,
+                allow_transfer = excluded.allow_transfer,
+                view_only = excluded.view_only,
                 updated_at = excluded.updated_at",
             params![
                 record.id,
@@ -680,6 +757,10 @@ impl Database {
                 record.settings_json,
                 record.icon,
                 record.tags,
+                if record.is_global { 1 } else { 0 },
+                record.allow_clipboard,
+                record.allow_transfer,
+                if record.view_only { 1 } else { 0 },
                 record.created_by,
                 record.created_at,
                 record.updated_at

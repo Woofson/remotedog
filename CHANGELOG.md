@@ -27,15 +27,21 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
   * Stored directly inside the SQLite `users.avatar_data` column, keeping `remotedog.db` completely self-contained with zero external file dependencies or broken paths when moving across servers, Docker containers, or backup archives.
   * Dynamic avatar rendering with initial fallback in top navbar pill, profile dropdown menu header, profile modal, and admin user directory.
 
-### 👤 Identity, Account Management & Email Support
-* **Account Renaming**:
-  * Added full support in API (`PUT /api/users/:id`) and SQLite layer to rename `username` (with collision validation) and `display_name`.
-  * Renamed default role from `Administrator` to `Admin`.
-  * Added automatic SQLite in-place migration for existing databases to update legacy display names.
-* **Email Recovery Readiness**:
-  * Added `email` column to `users` table and API payloads (`POST /api/users`, `PUT /api/users/:id`).
-  * Default admin seeded with `admin@remotedog.local`.
-  * Added dedicated email fields to user profile and user creation forms for upcoming password recovery workflows.
+### 🛡️ Phase 2.1: Granular RBAC & Personal vs. Global Connection Isolation
+* **Personal Private vs. Global Shared Connections**:
+  * Added `is_global` database column and SQLite schema migrations.
+  * **Global Shared Connections**: Admin-published organizational endpoints accessible to assigned users.
+  * **Personal Private Connections**: Operators can create their own private endpoints and credentials that are isolated to their personal workspace.
+  * **Admin Oversight**: Admins retain full visibility and administrative governance over all connections.
+* **Security & Session Policy Enforcement**:
+  * **Interaction Mode (`view_only`)**: Support for View-Only / Observer sessions (monitoring screen without keystroke/mouse input forwarding).
+  * **Clipboard Policy (`allow_clipboard`)**: Granular policy control (`bidirectional`, `host_to_remote`, `remote_to_host`, `disabled`) enforced during active terminal and graphics sessions.
+  * **File Transfer Policy (`allow_transfer`)**: File staging controls (`full`, `upload_only`, `download_only`, `disabled`) with automatic SFTP directory suppression.
+* **Connection Directory & UI Upgrades**:
+  * Upgraded Connections Directory (`#connections-modal`) and Target Edit (`#connection-edit-modal`) modals to CommanderDog standard overlay architecture.
+  * Filter buttons for `All`, `🌐 Global Shared`, and `🔒 Personal Private` connections.
+  * Live search filter across connection names, protocols, hosts, and tags.
+  * Policy indicator badges for Mode, Clipboard, and File Staging.
 
 ---
 

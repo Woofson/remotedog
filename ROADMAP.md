@@ -29,9 +29,10 @@ Each connection profile and user assignment supports a comprehensive capability 
 | **Profile Photos** | `Direct SQLite Storage (160×160 WebP)` | 100% portable avatars without filesystem dependencies | ✅ **Completed (v0.1.1)** |
 | **Account Renaming** | `Username & Display Name` | Edit username and nickname with uniqueness collision checks | ✅ **Completed (v0.1.1)** |
 | **Email Accounts** | `Primary Email & Recovery` | User email for future credentials recovery and notifications | ✅ **Completed (v0.1.1)** |
-| **Clipboard Sync** | `Bidirectional`, `Host-to-Remote Only`, `Remote-to-Host Only`, `Disabled` | Enforces clipboard data flow constraints to prevent data exfiltration | ⏳ Planned |
-| **File Transfer & Dropboxes** | `Full (Upload & Download)`, `Download Only`, `Upload Only`, `Disabled` | Controls SFTP directory staging and browser-based file drag-and-drop | ⏳ Planned |
-| **Interaction Mode** | `Full Interactive`, `View-Only (Observer)`, `Shadow / Collaborative` | Allows screen sharing or read-only monitoring without input transmission | ⏳ Planned |
+| **Personal vs Global** | `Scope Isolation & Ownership` | Isolated personal private endpoints + shared global org pools | ✅ **Completed (v0.1.1)** |
+| **Interaction Mode** | `Full Interactive`, `View-Only (Observer)` | Observer screen monitoring without input transmission | ✅ **Completed (v0.1.1)** |
+| **Clipboard Sync** | `Bidirectional`, `Host-to-Remote`, `Remote-to-Host`, `Disabled` | Enforces clipboard data flow constraints | ✅ **Completed (v0.1.1)** |
+| **File Transfer & Dropboxes** | `Full`, `Upload Only`, `Download Only`, `Disabled` | Controls SFTP directory staging and drag-and-drop | ✅ **Completed (v0.1.1)** |
 | **Protocol Entitlements** | `SSH`, `VNC / RFB`, `RDP`, `Local PTY` | Per-user allowlist of accessible gateway protocol engines | ⏳ Planned |
 | **Audio Redirection** | `Enabled`, `Disabled` | RDP and VNC audio channel forwarding | ⏳ Planned |
 

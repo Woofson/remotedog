@@ -678,6 +678,10 @@ pub struct SaveConnectionPayload {
     pub settings_json: Option<String>,
     pub icon: Option<String>,
     pub tags: Option<String>,
+    pub is_global: Option<bool>,
+    pub allow_clipboard: Option<String>,
+    pub allow_transfer: Option<String>,
+    pub view_only: Option<bool>,
 }
 
 pub async fn api_create_connection(
@@ -723,6 +727,19 @@ pub async fn api_create_connection(
         None
     };
 
+    let is_admin = claims.role == "admin";
+    let is_global = if is_admin {
+        payload.is_global.unwrap_or(true)
+    } else {
+        false // Operators create personal private connections by default
+    };
+
+    let allow_clipboard = payload
+        .allow_clipboard
+        .unwrap_or_else(|| "bidirectional".into());
+    let allow_transfer = payload.allow_transfer.unwrap_or_else(|| "full".into());
+    let view_only = payload.view_only.unwrap_or(false);
+
     let record = ConnectionRecord {
         id: id.clone(),
         name: payload.name,
@@ -735,6 +752,10 @@ pub async fn api_create_connection(
         settings_json: payload.settings_json.unwrap_or_else(|| "{}".into()),
         icon: payload.icon,
         tags: payload.tags,
+        is_global,
+        allow_clipboard,
+        allow_transfer,
+        view_only,
         created_by: Some(claims.sub),
         created_at: now.clone(),
         updated_at: now,
@@ -781,6 +802,15 @@ pub async fn api_update_connection(
             )
         })?;
 
+    let is_admin = claims.role == "admin";
+    let is_owner = record.created_by.as_deref() == Some(&claims.sub);
+    if !is_admin && !is_owner {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "Access denied: only the owner or an administrator can modify this connection" })),
+        ));
+    }
+
     record.name = payload.name;
     record.protocol = payload.protocol;
     record.host = payload.host;
@@ -789,6 +819,20 @@ pub async fn api_update_connection(
     record.settings_json = payload.settings_json.unwrap_or(record.settings_json);
     record.icon = payload.icon;
     record.tags = payload.tags;
+    if is_admin {
+        if let Some(g) = payload.is_global {
+            record.is_global = g;
+        }
+    }
+    if let Some(clip) = payload.allow_clipboard {
+        record.allow_clipboard = clip;
+    }
+    if let Some(trans) = payload.allow_transfer {
+        record.allow_transfer = trans;
+    }
+    if let Some(vo) = payload.view_only {
+        record.view_only = vo;
+    }
     record.updated_at = chrono::Utc::now().to_rfc3339();
 
     if let Some(pw) = payload.password {
@@ -830,6 +874,31 @@ pub async fn api_delete_connection(
         return Err((
             StatusCode::FORBIDDEN,
             Json(json!({ "error": "Access denied" })),
+        ));
+    }
+
+    let record = state
+        .db
+        .get_connection_raw(&id)
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "error": "Connection not found" })),
+            )
+        })?;
+
+    let is_admin = claims.role == "admin";
+    let is_owner = record.created_by.as_deref() == Some(&claims.sub);
+    if !is_admin && !is_owner {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "Access denied: only the owner or an administrator can delete this connection" })),
         ));
     }
 
@@ -1218,6 +1287,23 @@ pub async fn ws_tunnel_handler(
                 Json(json!({ "error": "Connection not found" })),
             )
         })?;
+
+    let is_admin = claims.role == "admin";
+    let is_owner = conn_rec.created_by.as_deref() == Some(&user.id);
+    if !is_admin && !is_owner && !conn_rec.is_global {
+        let user_conns = state.db.list_connections_for_user(&user).map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+        })?;
+        if !user_conns.iter().any(|c| c.id == conn_rec.id && c.user_permissions.can_connect) {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": "Access denied: you do not have permission to connect to this resource." })),
+            ));
+        }
+    }
 
     state.db.log_audit(
         Some(&user.id),
