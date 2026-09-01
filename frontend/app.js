@@ -19,6 +19,18 @@ const state = {
   },
 };
 
+// ================= API Helper =================
+async function apiFetch(url, options = {}) {
+  const headers = Object.assign({}, options.headers || {});
+  if (state.jwtToken && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${state.jwtToken}`;
+  }
+  if (!headers['Content-Type'] && options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+  return fetch(url, Object.assign({}, options, { headers }));
+}
+
 // ================= Initialization & Lifecycle =================
 document.addEventListener('DOMContentLoaded', async () => {
   setupKeyboardShortcuts();
