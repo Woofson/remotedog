@@ -590,13 +590,22 @@
               <label style="font-size: 11px; font-weight: 600;">Password *</label>
               <input type="password" id="edit-user-password" class="form-input" placeholder="••••••••" autocomplete="new-password" />
             </div>
-            <div class="form-group">
-              <label style="font-size: 11px; font-weight: 600;">Role</label>
-              <select id="edit-user-role" class="form-input">
-                <option value="operator" selected>Operator (Connect & Edit)</option>
-                <option value="admin">Admin (Full Access)</option>
-                <option value="viewer">Viewer (Read-Only Connect)</option>
-              </select>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label style="font-size: 11px; font-weight: 600;">Role</label>
+                <select id="edit-user-role" class="form-input">
+                  <option value="operator" selected>Operator (Connect & Edit)</option>
+                  <option value="admin">Admin (Full Access)</option>
+                  <option value="viewer">Viewer (Read-Only Connect)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label style="font-size: 11px; font-weight: 600;">Account Status</label>
+                <select id="edit-user-active" class="form-input">
+                  <option value="true" selected>✅ Active (Can Log In)</option>
+                  <option value="false">🚫 Disabled (Access Blocked)</option>
+                </select>
+              </div>
             </div>
             <div id="add-user-error" style="color: var(--woofson-danger, #ef4444); font-size: 11px; display: none;"></div>
           </div>
@@ -747,11 +756,11 @@
           <form id="profile-update-form" onsubmit="handleUpdateProfile(event)">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
               <div class="form-group">
-                <label style="font-size: 11px; font-weight: 600;">Username *</label>
-                <input type="text" id="profile-username" class="form-input" required placeholder="e.g. admin" autocomplete="off" />
+                <label style="font-size: 11px; font-weight: 600; color: var(--woofson-text-muted);">Username (System ID)</label>
+                <input type="text" id="profile-username" class="form-input" readonly disabled style="background: var(--woofson-bg-void, #121214); cursor: not-allowed; opacity: 0.75;" />
               </div>
               <div class="form-group">
-                <label style="font-size: 11px; font-weight: 600;">Display Name / Nickname</label>
+                <label style="font-size: 11px; font-weight: 600;">Nickname / Display Name</label>
                 <input type="text" id="profile-display-name" class="form-input" placeholder="e.g. Woofson" />
               </div>
             </div>

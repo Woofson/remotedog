@@ -334,24 +334,17 @@ function closeUserProfileModal() {
 
 async function handleUpdateProfile(e) {
   e.preventDefault();
-  const username = document.getElementById('profile-username').value.trim();
   const displayName = document.getElementById('profile-display-name').value.trim();
   const email = document.getElementById('profile-email').value.trim();
   const newPassword = document.getElementById('profile-new-password').value;
   const avatarData = document.getElementById('profile-avatar-data').value;
   const msgEl = document.getElementById('profile-modal-msg');
-  
-  if (!username) {
-    alert('Username cannot be empty');
-    return;
-  }
 
   try {
     const payload = {
-      username: username,
-      display_name: displayName,
+      display_name: displayName || null,
       email: email || null,
-      avatar_data: avatarData,
+      avatar_data: avatarData || null,
     };
     if (newPassword && newPassword.trim()) {
       payload.password = newPassword;
@@ -365,15 +358,14 @@ async function handleUpdateProfile(e) {
       if (data.user) {
         state.currentUser = data.user;
       } else {
-        state.currentUser.username = username;
-        state.currentUser.display_name = displayName;
+        state.currentUser.display_name = displayName || null;
         state.currentUser.email = email || null;
         state.currentUser.avatar_data = avatarData || null;
       }
       updateHeaderProfile();
       msgEl.textContent = 'Profile updated successfully!';
       msgEl.style.display = 'block';
-      showToast('Profile and email updated!', 'success');
+      showToast(`Profile updated! Nickname set to "${state.currentUser.display_name || state.currentUser.username}"`, 'success');
       setTimeout(() => { closeUserProfileModal(); msgEl.style.display = 'none'; }, 1000);
     } else {
       const d = await res.json();
@@ -1293,6 +1285,14 @@ function renderUsersTable(users) {
       : `<span style="width: 24px; height: 24px; border-radius: 50%; background: var(--woofson-bg-active); border: 1px solid var(--woofson-border); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--woofson-accent); margin-right: 8px; vertical-align: middle;">${(u.username[0] || 'U').toUpperCase()}</span>`;
 
     const roleName = u.role.toLowerCase() === 'admin' ? 'ADMIN' : u.role.toUpperCase();
+    const statusBadge = u.is_active
+      ? `<span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700;">ACTIVE</span>`
+      : `<span class="badge" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700;">DISABLED</span>`;
+
+    const toggleBtn = u.is_active
+      ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserStatus('${u.id}', false)" title="Disable user login">Disable</button>`
+      : `<button class="btn btn-sm" style="color: #10b981; border-color: rgba(16,185,129,0.4);" onclick="toggleUserStatus('${u.id}', true)" title="Enable user login">Enable</button>`;
+
     return `
       <tr>
         <td>
@@ -1307,14 +1307,38 @@ function renderUsersTable(users) {
         <td class="text-muted text-sm">${u.email ? escapeHtml(u.email) : '—'}</td>
         <td><span class="user-role-badge">${roleName}</span></td>
         <td><span class="pane-protocol-badge">${u.auth_provider.toUpperCase()}</span></td>
-        <td>${u.is_active ? '<span class="text-success">Active</span>' : '<span class="text-danger">Disabled</span>'}</td>
+        <td>${statusBadge}</td>
         <td class="text-muted">${new Date(u.created_at).toLocaleDateString()}</td>
         <td>
-          <button class="btn btn-secondary btn-sm text-danger" onclick="deleteUser('${u.id}')">Delete</button>
+          <div style="display: flex; gap: 4px;">
+            ${toggleBtn}
+            <button class="btn btn-secondary btn-sm text-danger" onclick="deleteUser('${u.id}')">Delete</button>
+          </div>
         </td>
       </tr>
     `;
   }).join('');
+}
+
+async function toggleUserStatus(userId, newActive) {
+  const actionName = newActive ? 'enable' : 'disable';
+  if (!confirm(`Are you sure you want to ${actionName} this user account?`)) return;
+
+  try {
+    const res = await apiFetch(`/api/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_active: newActive }),
+    });
+    if (res.ok) {
+      showToast(`User account ${newActive ? 'enabled' : 'disabled'}!`, 'success');
+      openUsersModal();
+    } else {
+      const err = await res.json();
+      alert(`Failed to update status: ${err.error || 'Unknown error'}`);
+    }
+  } catch (err) {
+    alert(`Failed: ${err}`);
+  }
 }
 
 function openAddUserModal() {
@@ -1335,6 +1359,7 @@ async function handleSaveUser(e) {
   const email = document.getElementById('edit-user-email').value.trim();
   const password = document.getElementById('edit-user-password').value;
   const role = document.getElementById('edit-user-role').value;
+  const isActive = document.getElementById('edit-user-active') ? document.getElementById('edit-user-active').value === 'true' : true;
   const errEl = document.getElementById('add-user-error');
 
   try {
@@ -1350,6 +1375,7 @@ async function handleSaveUser(e) {
         email: email || null,
         password,
         role,
+        is_active: isActive,
       }),
     });
 

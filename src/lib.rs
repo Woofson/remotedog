@@ -127,4 +127,42 @@ mod tests {
         assert_eq!(bob_list[0].allow_clipboard, "host_to_remote");
         assert_eq!(bob_list[0].allow_transfer, "disabled");
     }
+
+    #[test]
+    fn test_user_disable_and_profile_updates() {
+        let db = Database::new_in_memory().expect("failed to create in-memory db");
+
+        let mut user = User {
+            id: Uuid::new_v4().to_string(),
+            username: "admin".into(),
+            password_hash: "hash".into(),
+            email: Some("admin@remotedog.local".into()),
+            display_name: Some("Administrator".into()),
+            role: "admin".into(),
+            is_active: true,
+            auth_provider: "local".into(),
+            oidc_sub: None,
+            created_at: "2026-09-01T00:00:00Z".into(),
+            last_login: None,
+            avatar_data: None,
+        };
+        db.create_user(&user).expect("create user");
+
+        // 1. Update nickname and email
+        user.display_name = Some("Woofson Supreme".into());
+        user.email = Some("boss@boop.no".into());
+        db.update_user(&user).expect("update user profile");
+
+        let fetched = db.get_user_by_id(&user.id).expect("get user").expect("user exists");
+        assert_eq!(fetched.display_name.as_deref(), Some("Woofson Supreme"));
+        assert_eq!(fetched.email.as_deref(), Some("boss@boop.no"));
+        assert!(fetched.is_active);
+
+        // 2. Disable user account (including builtin admin)
+        user.is_active = false;
+        db.update_user(&user).expect("disable user");
+
+        let disabled_user = db.get_user_by_id(&user.id).expect("get user").expect("user exists");
+        assert!(!disabled_user.is_active);
+    }
 }

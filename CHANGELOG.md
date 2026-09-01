@@ -27,6 +27,16 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
   * Stored directly inside the SQLite `users.avatar_data` column, keeping `remotedog.db` completely self-contained with zero external file dependencies or broken paths when moving across servers, Docker containers, or backup archives.
   * Dynamic avatar rendering with initial fallback in top navbar pill, profile dropdown menu header, profile modal, and admin user directory.
 
+### 👤 Identity, Nickname Customization & User Disabling
+* **Username Protection on Self**:
+  * System account IDs (`username`) are fixed and non-editable by users on their own accounts.
+  * Users can freely customize **Display Name / Nickname**, **Email**, **Password**, and **Profile Photo**.
+  * Nicknames update in real time across top navigation pills, user dropdowns, modals, and audit logs.
+* **Account Disabling (`is_active`)**:
+  * Admins can disable or re-enable any account (including the builtin first-run `admin`) via the user management directory.
+  * When disabled, the account is immediately rejected from local/OIDC authentication, session renewal, and WebSocket remote desktop/terminal tunnels.
+  * Added account status toggle buttons (`Disable` / `Enable`) and status indicator badges (`ACTIVE` / `DISABLED`).
+
 ### 🛡️ Phase 2.1: Granular RBAC & Personal vs. Global Connection Isolation
 * **Personal Private vs. Global Shared Connections**:
   * Added `is_global` database column and SQLite schema migrations.

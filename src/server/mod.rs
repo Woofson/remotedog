@@ -223,6 +223,13 @@ pub async fn api_me(
             )
         })?;
 
+    if !user.is_active {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "Account is disabled" })),
+        ));
+    }
+
     let safe_user: UserSafe = user.into();
     Ok(Json(json!(safe_user)))
 }
@@ -496,26 +503,31 @@ pub async fn api_update_user(
             )
         })?;
 
+    // Only administrators modifying another user can change a username. Users cannot change username on themselves.
     if let Some(un) = payload.username {
-        let trimmed = un.trim().to_string();
-        if !trimmed.is_empty() && trimmed != user.username {
-            if let Ok(Some(existing)) = state.db.get_user_by_username(&trimmed) {
-                if existing.id != user.id {
-                    return Err((
-                        StatusCode::CONFLICT,
-                        Json(json!({ "error": "Username is already taken" })),
-                    ));
+        if claims.role == "admin" && claims.sub != id {
+            let trimmed = un.trim().to_string();
+            if !trimmed.is_empty() && trimmed != user.username {
+                if let Ok(Some(existing)) = state.db.get_user_by_username(&trimmed) {
+                    if existing.id != user.id {
+                        return Err((
+                            StatusCode::CONFLICT,
+                            Json(json!({ "error": "Username is already taken" })),
+                        ));
+                    }
                 }
+                user.username = trimmed;
             }
-            user.username = trimmed;
         }
     }
 
     if let Some(em) = payload.email {
-        user.email = Some(em);
+        let trimmed = em.trim().to_string();
+        user.email = if trimmed.is_empty() { None } else { Some(trimmed) };
     }
     if let Some(dn) = payload.display_name {
-        user.display_name = Some(dn);
+        let trimmed = dn.trim().to_string();
+        user.display_name = if trimmed.is_empty() { None } else { Some(trimmed) };
     }
     if let Some(av) = payload.avatar_data {
         user.avatar_data = if av.trim().is_empty() { None } else { Some(av) };
@@ -1271,6 +1283,13 @@ pub async fn ws_tunnel_handler(
                 Json(json!({ "error": "User not found" })),
             )
         })?;
+
+    if !user.is_active {
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": "Account is disabled" })),
+        ));
+    }
 
     let conn_rec = state
         .db
