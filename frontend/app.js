@@ -300,10 +300,19 @@ function openUserProfileModal() {
   const menu = document.getElementById('profile-dropdown-menu');
   if (menu) { menu.classList.remove('active'); menu.style.display = 'none'; }
   if (state.currentUser) {
+    const editUsername = document.getElementById('profile-edit-username');
+    if (editUsername) editUsername.textContent = state.currentUser.username || 'user';
+    const editRoleBadge = document.getElementById('profile-edit-role-badge');
+    if (editRoleBadge) editRoleBadge.textContent = (state.currentUser.role || 'operator').toUpperCase();
+    const editAuthType = document.getElementById('profile-edit-auth-type');
+    if (editAuthType) editAuthType.textContent = state.currentUser.auth_provider === 'oidc' ? 'Authentik / OIDC SSO Account' : 'Local Database Account';
+
     const uInput = document.getElementById('profile-username');
     if (uInput) uInput.value = state.currentUser.username || '';
     const dInput = document.getElementById('profile-display-name');
     if (dInput) dInput.value = state.currentUser.display_name || '';
+    const eInput = document.getElementById('profile-email');
+    if (eInput) eInput.value = state.currentUser.email || '';
     const pwInput = document.getElementById('profile-new-password');
     if (pwInput) pwInput.value = '';
     const avatarInput = document.getElementById('profile-avatar-data');
@@ -327,6 +336,7 @@ async function handleUpdateProfile(e) {
   e.preventDefault();
   const username = document.getElementById('profile-username').value.trim();
   const displayName = document.getElementById('profile-display-name').value.trim();
+  const email = document.getElementById('profile-email').value.trim();
   const newPassword = document.getElementById('profile-new-password').value;
   const avatarData = document.getElementById('profile-avatar-data').value;
   const msgEl = document.getElementById('profile-modal-msg');
@@ -340,6 +350,7 @@ async function handleUpdateProfile(e) {
     const payload = {
       username: username,
       display_name: displayName,
+      email: email || null,
       avatar_data: avatarData,
     };
     if (newPassword && newPassword.trim()) {
@@ -356,12 +367,13 @@ async function handleUpdateProfile(e) {
       } else {
         state.currentUser.username = username;
         state.currentUser.display_name = displayName;
+        state.currentUser.email = email || null;
         state.currentUser.avatar_data = avatarData || null;
       }
       updateHeaderProfile();
       msgEl.textContent = 'Profile updated successfully!';
       msgEl.style.display = 'block';
-      showToast('Profile and avatar updated!', 'success');
+      showToast('Profile and email updated!', 'success');
       setTimeout(() => { closeUserProfileModal(); msgEl.style.display = 'none'; }, 1000);
     } else {
       const d = await res.json();
@@ -1182,6 +1194,7 @@ function renderUsersTable(users) {
             </div>
           </div>
         </td>
+        <td class="text-muted text-sm">${u.email ? escapeHtml(u.email) : '—'}</td>
         <td><span class="user-role-badge">${roleName}</span></td>
         <td><span class="pane-protocol-badge">${u.auth_provider.toUpperCase()}</span></td>
         <td>${u.is_active ? '<span class="text-success">Active</span>' : '<span class="text-danger">Disabled</span>'}</td>
@@ -1196,6 +1209,8 @@ function renderUsersTable(users) {
 
 function openAddUserModal() {
   document.getElementById('user-edit-form').reset();
+  const errEl = document.getElementById('add-user-error');
+  if (errEl) errEl.style.display = 'none';
   document.getElementById('user-edit-modal').style.display = 'flex';
 }
 
@@ -1206,8 +1221,11 @@ function closeUserEditModal() {
 async function handleSaveUser(e) {
   e.preventDefault();
   const username = document.getElementById('edit-user-username').value.trim();
+  const displayName = document.getElementById('edit-user-displayname').value.trim();
+  const email = document.getElementById('edit-user-email').value.trim();
   const password = document.getElementById('edit-user-password').value;
   const role = document.getElementById('edit-user-role').value;
+  const errEl = document.getElementById('add-user-error');
 
   try {
     const res = await fetch('/api/users', {
@@ -1216,19 +1234,35 @@ async function handleSaveUser(e) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${state.jwtToken}`,
       },
-      body: JSON.stringify({ username, password, role }),
+      body: JSON.stringify({
+        username,
+        display_name: displayName || null,
+        email: email || null,
+        password,
+        role,
+      }),
     });
 
     if (res.ok) {
-      showToast('User created successfully!');
+      showToast('User account created successfully!', 'success');
       closeUserEditModal();
       openUsersModal();
     } else {
       const data = await res.json();
-      alert(`Error creating user: ${data.error}`);
+      if (errEl) {
+        errEl.textContent = `Error: ${data.error || 'Failed to create user'}`;
+        errEl.style.display = 'block';
+      } else {
+        alert(`Error creating user: ${data.error}`);
+      }
     }
   } catch (err) {
-    alert(`Failed: ${err}`);
+    if (errEl) {
+      errEl.textContent = `Failed: ${err}`;
+      errEl.style.display = 'block';
+    } else {
+      alert(`Failed: ${err}`);
+    }
   }
 }
 

@@ -270,6 +270,7 @@ impl Database {
         // Portable migrations for existing SQLite databases
         let _ = conn.execute("ALTER TABLE users ADD COLUMN avatar_data TEXT;", []);
         let _ = conn.execute("UPDATE users SET display_name = 'admin' WHERE username = 'admin' AND display_name = 'Administrator';", []);
+        let _ = conn.execute("UPDATE users SET email = 'admin@remotedog.local' WHERE username = 'admin' AND (email IS NULL OR email = '');", []);
 
         Ok(())
     }
@@ -281,8 +282,8 @@ impl Database {
             let id = Uuid::new_v4().to_string();
             let now = Utc::now().to_rfc3339();
             conn.execute(
-                "INSERT INTO users (id, username, password_hash, display_name, role, is_active, auth_provider, created_at, avatar_data)
-                 VALUES (?1, 'admin', ?2, 'admin', 'admin', 1, 'local', ?3, NULL)",
+                "INSERT INTO users (id, username, password_hash, email, display_name, role, is_active, auth_provider, created_at, avatar_data)
+                 VALUES (?1, 'admin', ?2, 'admin@remotedog.local', 'admin', 'admin', 1, 'local', ?3, NULL)",
                 params![id, password_hash, now],
             )?;
 
