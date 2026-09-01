@@ -21,6 +21,13 @@ pub struct RdpConnectionParams {
     pub ignore_cert: bool,
     pub width: u16,
     pub height: u16,
+    pub color_depth: u32,
+    pub enable_audio: bool,
+    pub disable_wallpaper: bool,
+    pub disable_full_window_drag: bool,
+    pub disable_menu_animations: bool,
+    pub disable_themes: bool,
+    pub font_smoothing: bool,
 }
 
 /// Map incoming browser mouse events (bitmask + coordinates) to IronRDP FastPath mouse events
@@ -264,10 +271,12 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
         .with_destination(destination)
         .with_desktop_width(params.width.max(640))
         .with_desktop_height(params.height.max(480))
+        .with_color_depth(if params.color_depth == 16 { 16 } else { 32 })
         .with_credssp(true)
         .with_tls(true)
         .with_pointer_software_rendering(true)
         .with_compression(true)
+        .with_compression_level(2)
         .with_client_build(2600)
         .with_client_dir("C:\\Windows\\System32")
         .with_client_name("RemoteDog")

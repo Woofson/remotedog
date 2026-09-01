@@ -490,13 +490,61 @@
             <div id="group-rdp-settings" style="display: none; background: var(--woofson-bg-header, #202024); padding: 12px; border-radius: var(--radius-md, 6px); border: 1px solid var(--woofson-border, #3f3f46); display: flex; flex-direction: column; gap: 10px;">
               <div style="font-size: 11px; font-weight: 700; color: var(--woofson-accent, #f59e0b); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                <span>RDP & TLS Certificate Security</span>
+                <span>RDP Experience & Performance Tuning</span>
               </div>
+              
+              <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px;">
+                <div class="form-group">
+                  <label style="font-size: 11px; font-weight: 600;">Performance Experience Preset</label>
+                  <select id="conn-rdp-perf-preset" class="form-input" onchange="onRdpPresetChanged()">
+                    <option value="high_speed" selected>🚀 High Speed (Disable Wallpaper, Drag & Animations)</option>
+                    <option value="balanced">⚖️ Balanced (Font Smoothing & Themes, No Wallpaper)</option>
+                    <option value="high_quality">✨ High Quality (Full Fidelity, Wallpaper & Animations)</option>
+                    <option value="custom">🛠️ Custom Flags...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label style="font-size: 11px; font-weight: 600;">Color Depth</label>
+                  <select id="conn-rdp-color-depth" class="form-input">
+                    <option value="32" selected>32-bit (True Color, Highest Quality)</option>
+                    <option value="16">16-bit (High Color, 50% Faster on Slow WAN)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Custom / Advanced Performance Flags -->
+              <div id="group-rdp-custom-flags" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="conn-rdp-disable-wallpaper" checked />
+                  <span>Disable Wallpaper</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="conn-rdp-disable-window-drag" checked />
+                  <span>Disable Full Window Drag</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="conn-rdp-disable-menu-anim" checked />
+                  <span>Disable Menu Animations</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="conn-rdp-disable-themes" />
+                  <span>Disable Themes</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="conn-rdp-font-smoothing" checked />
+                  <span>Font Smoothing (ClearType)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="checkbox" id="conn-rdp-audio" />
+                  <span>Enable Audio Playback</span>
+                </label>
+              </div>
+
               <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px;">
                 <div class="form-group">
                   <label style="font-size: 11px; font-weight: 600;">TLS / SSL Certificate Trust</label>
                   <select id="conn-rdp-ignore-cert" class="form-input">
-                    <option value="true" selected>✅ Always Trust (Ignore Self-Signed & Untrusted Certs)</option>
+                    <option value="true" selected>✅ Always Trust (Ignore Self-Signed Certs)</option>
                     <option value="false">🔒 Strict TLS Verification</option>
                   </select>
                 </div>

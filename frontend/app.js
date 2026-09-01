@@ -552,6 +552,12 @@ function openAddConnectionModal() {
   const domainEl = document.getElementById('conn-rdp-domain');
   if (domainEl) domainEl.value = '';
 
+  const perfPresetEl = document.getElementById('conn-rdp-perf-preset');
+  if (perfPresetEl) perfPresetEl.value = 'high_speed';
+  const colorDepthEl = document.getElementById('conn-rdp-color-depth');
+  if (colorDepthEl) colorDepthEl.value = '32';
+  onRdpPresetChanged();
+
   onProtocolChanged();
   document.getElementById('connection-edit-modal').style.display = 'flex';
 }
@@ -594,12 +600,65 @@ function openEditConnectionModal(id) {
   const domainEl = document.getElementById('conn-rdp-domain');
   if (domainEl) domainEl.value = settings.domain || '';
 
+  const perfPresetEl = document.getElementById('conn-rdp-perf-preset');
+  if (perfPresetEl) perfPresetEl.value = settings.perf_preset || 'high_speed';
+  const colorDepthEl = document.getElementById('conn-rdp-color-depth');
+  if (colorDepthEl) colorDepthEl.value = settings.color_depth ? String(settings.color_depth) : '32';
+
+  const disableWallpaper = document.getElementById('conn-rdp-disable-wallpaper');
+  if (disableWallpaper) disableWallpaper.checked = settings.disable_wallpaper !== false;
+  const disableWindowDrag = document.getElementById('conn-rdp-disable-window-drag');
+  if (disableWindowDrag) disableWindowDrag.checked = settings.disable_window_drag !== false;
+  const disableMenuAnim = document.getElementById('conn-rdp-disable-menu-anim');
+  if (disableMenuAnim) disableMenuAnim.checked = settings.disable_menu_anim !== false;
+  const disableThemes = document.getElementById('conn-rdp-disable-themes');
+  if (disableThemes) disableThemes.checked = !!settings.disable_themes;
+  const fontSmoothing = document.getElementById('conn-rdp-font-smoothing');
+  if (fontSmoothing) fontSmoothing.checked = settings.font_smoothing !== false;
+  const audio = document.getElementById('conn-rdp-audio');
+  if (audio) audio.checked = !!settings.enable_audio;
+
   onProtocolChanged();
   document.getElementById('connection-edit-modal').style.display = 'flex';
 }
 
 function closeConnectionEditModal() {
   document.getElementById('connection-edit-modal').style.display = 'none';
+}
+
+function onRdpPresetChanged() {
+  const presetEl = document.getElementById('conn-rdp-perf-preset');
+  if (!presetEl) return;
+  const preset = presetEl.value;
+  const disableWallpaper = document.getElementById('conn-rdp-disable-wallpaper');
+  const disableWindowDrag = document.getElementById('conn-rdp-disable-window-drag');
+  const disableMenuAnim = document.getElementById('conn-rdp-disable-menu-anim');
+  const disableThemes = document.getElementById('conn-rdp-disable-themes');
+  const fontSmoothing = document.getElementById('conn-rdp-font-smoothing');
+  const audio = document.getElementById('conn-rdp-audio');
+
+  if (preset === 'high_speed') {
+    if (disableWallpaper) disableWallpaper.checked = true;
+    if (disableWindowDrag) disableWindowDrag.checked = true;
+    if (disableMenuAnim) disableMenuAnim.checked = true;
+    if (disableThemes) disableThemes.checked = true;
+    if (fontSmoothing) fontSmoothing.checked = false;
+    if (audio) audio.checked = false;
+  } else if (preset === 'balanced') {
+    if (disableWallpaper) disableWallpaper.checked = true;
+    if (disableWindowDrag) disableWindowDrag.checked = true;
+    if (disableMenuAnim) disableMenuAnim.checked = true;
+    if (disableThemes) disableThemes.checked = false;
+    if (fontSmoothing) fontSmoothing.checked = true;
+    if (audio) audio.checked = false;
+  } else if (preset === 'high_quality') {
+    if (disableWallpaper) disableWallpaper.checked = false;
+    if (disableWindowDrag) disableWindowDrag.checked = false;
+    if (disableMenuAnim) disableMenuAnim.checked = false;
+    if (disableThemes) disableThemes.checked = false;
+    if (fontSmoothing) fontSmoothing.checked = true;
+    if (audio) audio.checked = true;
+  }
 }
 
 function onProtocolChanged() {
@@ -629,6 +688,14 @@ async function handleSaveConnection(e) {
   const rdpSettings = {
     ignore_cert: document.getElementById('conn-rdp-ignore-cert') ? document.getElementById('conn-rdp-ignore-cert').value === 'true' : true,
     domain: document.getElementById('conn-rdp-domain') ? document.getElementById('conn-rdp-domain').value.trim() || null : null,
+    perf_preset: document.getElementById('conn-rdp-perf-preset') ? document.getElementById('conn-rdp-perf-preset').value : 'high_speed',
+    color_depth: document.getElementById('conn-rdp-color-depth') ? parseInt(document.getElementById('conn-rdp-color-depth').value, 10) : 32,
+    disable_wallpaper: document.getElementById('conn-rdp-disable-wallpaper') ? document.getElementById('conn-rdp-disable-wallpaper').checked : true,
+    disable_window_drag: document.getElementById('conn-rdp-disable-window-drag') ? document.getElementById('conn-rdp-disable-window-drag').checked : true,
+    disable_menu_anim: document.getElementById('conn-rdp-disable-menu-anim') ? document.getElementById('conn-rdp-disable-menu-anim').checked : true,
+    disable_themes: document.getElementById('conn-rdp-disable-themes') ? document.getElementById('conn-rdp-disable-themes').checked : false,
+    font_smoothing: document.getElementById('conn-rdp-font-smoothing') ? document.getElementById('conn-rdp-font-smoothing').checked : true,
+    enable_audio: document.getElementById('conn-rdp-audio') ? document.getElementById('conn-rdp-audio').checked : false,
   };
 
   const payload = {
@@ -744,8 +811,35 @@ function connectToTarget(connectionId) {
   };
 
   ws.onclose = () => {
-    statsEl.textContent = 'Closed';
+    statsEl.textContent = 'Disconnected';
+    statsEl.style.color = 'var(--woofson-danger, #ef4444)';
     showToast(`Disconnected from ${conn.name}`);
+
+    // Free canvas/terminal resources and display a clean Reconnect banner
+    bodyEl.innerHTML = `
+      <div class="pane-empty-state" style="padding: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; height: 100%;">
+        <div class="empty-icon" style="opacity: 0.8;">
+          <img src="assets/Remotedogiconsmall.png" alt="RemoteDog" class="empty-brand-img" style="filter: grayscale(30%); width: 44px; height: 44px;" />
+        </div>
+        <div>
+          <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--woofson-text);">Session Disconnected</h3>
+          <p style="margin: 0; font-size: 11px; color: var(--woofson-text-muted);">Disconnected from <strong style="color: var(--woofson-accent);">${escapeHtml(conn.name)}</strong> (${escapeHtml(conn.host)}:${conn.port})</p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px;">
+          <button class="btn btn-primary" onclick="connectToTarget('${conn.id}')" style="display: flex; align-items: center; gap: 6px; font-weight: 600; padding: 6px 14px; font-size: 12px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            Reconnect to ${escapeHtml(conn.name)}
+          </button>
+          <button class="btn btn-secondary" onclick="openConnectionsModal()" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 12px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Switch Target
+          </button>
+          <button class="btn btn-secondary" onclick="disconnectPane(${paneIndex})" style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 12px; opacity: 0.8;">
+            ✕ Clear
+          </button>
+        </div>
+      </div>
+    `;
   };
 
   // Branch by Protocol
@@ -1040,20 +1134,32 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
 
 function disconnectPane(paneIndex) {
   const pane = state.panes[paneIndex];
+  const prevConn = pane.conn;
   if (pane.socket) {
     pane.socket.close();
     pane.socket = null;
   }
   pane.conn = null;
 
-  document.getElementById(`pane-${paneIndex}-title`).textContent = 'Disconnected';
+  document.getElementById(`pane-${paneIndex}-title`).textContent = 'Ready for Session';
   document.getElementById(`pane-${paneIndex}-proto`).style.display = 'none';
   document.getElementById(`pane-${paneIndex}-stats`).style.display = 'none';
+
+  const reconnectBtn = prevConn ? `
+    <button class="btn btn-secondary" onclick="connectToTarget('${prevConn.id}')" style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 4px; padding: 5px 10px;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      Reconnect ${escapeHtml(prevConn.name)}
+    </button>
+  ` : '';
+
   document.getElementById(`pane-${paneIndex}-body`).innerHTML = `
     <div class="pane-empty-state">
       <div class="empty-icon"><img src="assets/Remotedogiconsmall.png" alt="RemoteDog" class="empty-brand-img" /></div>
-      <h3>Disconnected</h3>
-      <button class="btn btn-primary" onclick="openConnectionsModal()">Connect Pane ${paneIndex}</button>
+      <h3>Ready for Session</h3>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <button class="btn btn-primary" onclick="openConnectionsModal()">Connect Target</button>
+        ${reconnectBtn}
+      </div>
     </div>
   `;
 }

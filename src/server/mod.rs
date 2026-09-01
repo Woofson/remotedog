@@ -1371,6 +1371,14 @@ pub async fn ws_tunnel_handler(
             "rdp" => {
                 let mut ignore_cert = true;
                 let mut domain = None;
+                let mut color_depth = 32u32;
+                let mut enable_audio = false;
+                let mut disable_wallpaper = true;
+                let mut disable_full_window_drag = true;
+                let mut disable_menu_animations = true;
+                let mut disable_themes = false;
+                let mut font_smoothing = true;
+
                 if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&conn_rec.settings_json) {
                     if let Some(ic) = settings.get("ignore_cert").and_then(|v| v.as_bool()) {
                         ignore_cert = ic;
@@ -1379,6 +1387,29 @@ pub async fn ws_tunnel_handler(
                         if !d.trim().is_empty() {
                             domain = Some(d.trim().to_string());
                         }
+                    }
+                    if let Some(cd) = settings.get("color_depth").and_then(|v| v.as_u64()) {
+                        if cd == 16 || cd == 32 {
+                            color_depth = cd as u32;
+                        }
+                    }
+                    if let Some(ea) = settings.get("enable_audio").and_then(|v| v.as_bool()) {
+                        enable_audio = ea;
+                    }
+                    if let Some(dw) = settings.get("disable_wallpaper").and_then(|v| v.as_bool()) {
+                        disable_wallpaper = dw;
+                    }
+                    if let Some(df) = settings.get("disable_window_drag").and_then(|v| v.as_bool()) {
+                        disable_full_window_drag = df;
+                    }
+                    if let Some(dm) = settings.get("disable_menu_anim").and_then(|v| v.as_bool()) {
+                        disable_menu_animations = dm;
+                    }
+                    if let Some(dt) = settings.get("disable_themes").and_then(|v| v.as_bool()) {
+                        disable_themes = dt;
+                    }
+                    if let Some(fs) = settings.get("font_smoothing").and_then(|v| v.as_bool()) {
+                        font_smoothing = fs;
                     }
                 }
 
@@ -1391,6 +1422,13 @@ pub async fn ws_tunnel_handler(
                     ignore_cert,
                     width: 1920,
                     height: 1080,
+                    color_depth,
+                    enable_audio,
+                    disable_wallpaper,
+                    disable_full_window_drag,
+                    disable_menu_animations,
+                    disable_themes,
+                    font_smoothing,
                 };
                 handle_rdp_session(socket, params).await;
             }
