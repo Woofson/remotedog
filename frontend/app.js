@@ -52,20 +52,35 @@ async function checkAuth() {
 
 function onAuthenticated() {
   const modal = document.getElementById('login-modal');
-  modal.classList.remove('active');
-  modal.style.display = 'none';
-  document.getElementById('nav-user-name').textContent = state.currentUser.display_name || state.currentUser.username;
-  document.getElementById('nav-user-avatar').textContent = (state.currentUser.username[0] || 'U').toUpperCase();
-  document.getElementById('nav-user-role').textContent = state.currentUser.role;
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+  const name = state.currentUser.display_name || state.currentUser.username;
+  const initial = (state.currentUser.username[0] || 'U').toUpperCase();
+  const role = (state.currentUser.role || 'operator').toUpperCase();
 
-  if (state.currentUser.role === 'admin') {
-    document.getElementById('admin-nav-group').style.display = 'flex';
-  } else {
-    document.getElementById('admin-nav-group').style.display = 'none';
+  const navName = document.getElementById('nav-user-name');
+  if (navName) navName.textContent = name;
+  const navAvatar = document.getElementById('nav-user-avatar');
+  if (navAvatar) navAvatar.textContent = initial;
+  const navRole = document.getElementById('nav-user-role');
+  if (navRole) navRole.textContent = role;
+
+  const menuName = document.getElementById('menu-user-name');
+  if (menuName) menuName.textContent = name;
+  const menuAvatar = document.getElementById('menu-avatar-large');
+  if (menuAvatar) menuAvatar.textContent = initial;
+  const menuEmail = document.getElementById('menu-user-email');
+  if (menuEmail) menuEmail.textContent = `${state.currentUser.username}@remotedog.local`;
+
+  const adminItem = document.getElementById('admin-nav-item');
+  if (adminItem) {
+    adminItem.style.display = state.currentUser.role === 'admin' ? 'flex' : 'none';
   }
 
   loadConnections();
-  showToast(`Welcome back, ${state.currentUser.display_name || state.currentUser.username}!`);
+  showToast(`Welcome back, ${name}!`);
 }
 
 function showLoginModal() {
@@ -147,15 +162,28 @@ function logout() {
   window.location.reload();
 }
 
-function toggleUserDropdown() {
-  const dd = document.getElementById('user-dropdown');
-  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+function toggleProfileMenu(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('profile-dropdown-menu');
+  if (menu) {
+    const isVisible = menu.classList.contains('active') || menu.style.display === 'block';
+    if (isVisible) {
+      menu.classList.remove('active');
+      menu.style.display = 'none';
+    } else {
+      menu.classList.add('active');
+      menu.style.display = 'block';
+    }
+  }
 }
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.user-pill-wrap')) {
-    const dd = document.getElementById('user-dropdown');
-    if (dd) dd.style.display = 'none';
+  if (!e.target.closest('.profile-dropdown-wrapper')) {
+    const menu = document.getElementById('profile-dropdown-menu');
+    if (menu) {
+      menu.classList.remove('active');
+      menu.style.display = 'none';
+    }
   }
 });
 
@@ -163,25 +191,94 @@ document.addEventListener('click', (e) => {
 function setPaneLayout(layout) {
   state.paneLayout = layout;
   const grid = document.getElementById('viewport-grid');
-  grid.className = `viewport-grid layout-${layout}`;
+  if (grid) {
+    grid.className = `viewport-grid layout-${layout}`;
+  }
 
   // Update layout button styles
-  [1, 2, 3, 4].forEach(i => {
-    const btn = document.getElementById(`btn-layout-${i === 2 ? '2v' : i}`);
-    if (btn) btn.classList.toggle('active', i === layout);
+  ['1', '2v', '2h', '3', '4'].forEach(id => {
+    const btn = document.getElementById(`layout-${id}`);
+    if (btn) btn.classList.toggle('active', String(layout) === id || (layout === 2 && id === '2v'));
   });
+
+  const maxPanes = (layout === 1) ? 1 : (layout === 2 || layout === '2v' || layout === '2h') ? 2 : (layout === 3) ? 3 : 4;
 
   // Show/Hide Panes
   for (let i = 1; i <= 4; i++) {
-    const pane = document.getElementById(`pane-i`);
     const paneEl = document.getElementById(`pane-${i}`);
     if (paneEl) {
-      paneEl.style.display = i <= layout ? 'flex' : 'none';
+      paneEl.style.display = i <= maxPanes ? 'flex' : 'none';
     }
   }
 
-  if (state.activePaneIndex > layout) {
+  if (state.activePaneIndex > maxPanes) {
     activatePane(1);
+  }
+}
+
+// ================= About & Profile Modals =================
+function openAboutModal() {
+  const menu = document.getElementById('profile-dropdown-menu');
+  if (menu) { menu.classList.remove('active'); menu.style.display = 'none'; }
+  const m = document.getElementById('about-modal');
+  if (m) { m.classList.add('active'); m.style.display = 'flex'; }
+}
+
+function closeAboutModal() {
+  const m = document.getElementById('about-modal');
+  if (m) { m.classList.remove('active'); m.style.display = 'none'; }
+}
+
+function openUserProfileModal() {
+  const menu = document.getElementById('profile-dropdown-menu');
+  if (menu) { menu.classList.remove('active'); menu.style.display = 'none'; }
+  if (state.currentUser) {
+    const uEl = document.getElementById('profile-modal-username');
+    if (uEl) uEl.textContent = state.currentUser.username;
+    const rEl = document.getElementById('profile-modal-role');
+    if (rEl) rEl.textContent = (state.currentUser.role || 'Operator').toUpperCase();
+    const aEl = document.getElementById('profile-modal-avatar');
+    if (aEl) aEl.textContent = (state.currentUser.username[0] || 'U').toUpperCase();
+    const dEl = document.getElementById('profile-display-name');
+    if (dEl) dEl.value = state.currentUser.display_name || '';
+  }
+  const m = document.getElementById('user-profile-modal');
+  if (m) { m.classList.add('active'); m.style.display = 'flex'; }
+}
+
+function closeUserProfileModal() {
+  const m = document.getElementById('user-profile-modal');
+  if (m) { m.classList.remove('active'); m.style.display = 'none'; }
+}
+
+async function handleUpdateProfile(e) {
+  e.preventDefault();
+  const displayName = document.getElementById('profile-display-name').value.trim();
+  const newPassword = document.getElementById('profile-new-password').value;
+  const msgEl = document.getElementById('profile-modal-msg');
+  
+  try {
+    const payload = { display_name: displayName };
+    if (newPassword) payload.password = newPassword;
+    const res = await apiFetch(`/api/users/${state.currentUser.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      state.currentUser.display_name = displayName;
+      const navName = document.getElementById('nav-user-name');
+      if (navName) navName.textContent = displayName || state.currentUser.username;
+      const menuName = document.getElementById('menu-user-name');
+      if (menuName) menuName.textContent = displayName || state.currentUser.username;
+      msgEl.textContent = 'Profile updated successfully!';
+      msgEl.style.display = 'block';
+      setTimeout(() => { closeUserProfileModal(); msgEl.style.display = 'none'; }, 1000);
+    } else {
+      const d = await res.json();
+      alert(d.error || 'Failed to update profile');
+    }
+  } catch (err) {
+    alert('Error updating profile');
   }
 }
 
