@@ -148,9 +148,10 @@ remotedog/
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap & Changelog
 
-See [ROADMAP.md](ROADMAP.md) for the detailed architectural plan, including granular RBAC connection policies, clipboard & file transfer permissions, session recording, and Authentik directory sync.
+* **Roadmap**: See [ROADMAP.md](ROADMAP.md) for the detailed architectural plan, including granular RBAC connection policies, clipboard & file transfer permissions, session recording, and Authentik directory sync.
+* **Changelog**: See [CHANGELOG.md](CHANGELOG.md) for release notes and version history.
 
 ---
 

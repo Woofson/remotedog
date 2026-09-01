@@ -8,15 +8,15 @@ This document outlines the strategic roadmap and architectural milestones for **
 
 ```mermaid
 graph LR
-  A["Phase 1: Core Gateway & Woofson UI"] --> B["Phase 2: Granular RBAC & Connections Manager"]
-  B --> C["Phase 3: Directory Sync & SSO (Authentik / OIDC)"]
+  A["Phase 1: Core Gateway & UI (v0.1.0)"] --> B["Phase 2: Granular RBAC & Connections Manager (v0.1.1+)"]
+  B --> C["Phase 3: Directory Sync & Password Recovery"]
   C --> D["Phase 4: Session Recording & Audit Compliance"]
   D --> E["Phase 5: High-Density Edge Clustering"]
 ```
 
 ---
 
-## 📌 Phase 2: Granular Connections Manager & User Entitlements
+## 📌 Phase 2: Granular Connections Manager & User Entitlements *(In Progress — v0.1.1)*
 
 The Connections Manager is being unified directly with SQLite RBAC and user profile management. This enables administrators to define fine-grained security policies per connection, per user, and per group.
 
@@ -24,13 +24,16 @@ The Connections Manager is being unified directly with SQLite RBAC and user prof
 
 Each connection profile and user assignment supports a comprehensive capability matrix:
 
-| Permission Category | Configuration Options | Description |
-| :--- | :--- | :--- |
-| **Clipboard Sync** | `Bidirectional`, `Host-to-Remote Only`, `Remote-to-Host Only`, `Disabled` | Enforces clipboard data flow constraints to prevent data exfiltration. |
-| **File Transfer & Dropboxes** | `Full (Upload & Download)`, `Download Only`, `Upload Only`, `Disabled` | Controls SFTP directory staging and browser-based file drag-and-drop. |
-| **Interaction Mode** | `Full Interactive`, `View-Only (Observer)`, `Shadow / Collaborative` | Allows screen sharing or read-only monitoring without input transmission. |
-| **Protocol Entitlements** | `SSH`, `VNC / RFB`, `RDP`, `Local PTY` | Per-user allowlist of accessible gateway protocol engines. |
-| **Audio Redirection** | `Enabled`, `Disabled` | RDP and VNC audio channel forwarding. |
+| Permission Category | Configuration Options | Description | Status |
+| :--- | :--- | :--- | :--- |
+| **Profile Photos** | `Direct SQLite Storage (160×160 WebP)` | 100% portable avatars without filesystem dependencies | ✅ **Completed (v0.1.1)** |
+| **Account Renaming** | `Username & Display Name` | Edit username and nickname with uniqueness collision checks | ✅ **Completed (v0.1.1)** |
+| **Email Accounts** | `Primary Email & Recovery` | User email for future credentials recovery and notifications | ✅ **Completed (v0.1.1)** |
+| **Clipboard Sync** | `Bidirectional`, `Host-to-Remote Only`, `Remote-to-Host Only`, `Disabled` | Enforces clipboard data flow constraints to prevent data exfiltration | ⏳ Planned |
+| **File Transfer & Dropboxes** | `Full (Upload & Download)`, `Download Only`, `Upload Only`, `Disabled` | Controls SFTP directory staging and browser-based file drag-and-drop | ⏳ Planned |
+| **Interaction Mode** | `Full Interactive`, `View-Only (Observer)`, `Shadow / Collaborative` | Allows screen sharing or read-only monitoring without input transmission | ⏳ Planned |
+| **Protocol Entitlements** | `SSH`, `VNC / RFB`, `RDP`, `Local PTY` | Per-user allowlist of accessible gateway protocol engines | ⏳ Planned |
+| **Audio Redirection** | `Enabled`, `Disabled` | RDP and VNC audio channel forwarding | ⏳ Planned |
 
 ---
 
@@ -65,8 +68,10 @@ RemoteDog distinguishes between shared organizational resources and personal pri
 
 ---
 
-## 📌 Phase 3: Identity Provider & Directory Sync
+## 📌 Phase 3: Identity Provider, Directory Sync & Password Recovery
 
+* **Email-Based Password Recovery**:
+  * Magic link / one-time reset token emailed to verified user addresses with Argon2id hash update.
 * **Authentik / Keycloak / Okta OIDC Sync**:
   * Map Identity Provider group claims (e.g., `groups: ["infra-admins", "remote-viewers"]`) directly to RemoteDog user roles and connection pools.
 * **Just-In-Time (JIT) User Provisioning**:
