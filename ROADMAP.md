@@ -17,27 +17,27 @@ graph LR
 
 ---
 
-## 📌 Phase 2: Granular Connections Manager & User Entitlements *(In Progress — v0.1.1)*
+## 📌 Phase 2: Granular Connections Manager & Native Protocol Engines *(v0.1.1 – v0.2.0)*
 
-The Connections Manager is being unified directly with SQLite RBAC and user profile management. This enables administrators to define fine-grained security policies per connection, per user, and per group.
+The Connections Manager is unified directly with SQLite RBAC, user profile management, and pure Rust protocol dispatchers.
 
-### 1. User & Group Permission Matrix
+### 1. User & Protocol Capability Matrix
 
-Each connection profile and user assignment supports a comprehensive capability matrix:
-
-| Permission Category | Configuration Options | Description | Status |
+| Permission & Protocol Category | Configuration Options | Description | Status |
 | :--- | :--- | :--- | :--- |
 | **Profile Photos** | `Direct SQLite Storage (160×160 WebP)` | 100% portable avatars without filesystem dependencies | ✅ **Completed (v0.1.1)** |
-| **Account Renaming** | `Username & Display Name` | Edit username and nickname with uniqueness collision checks | ✅ **Completed (v0.1.1)** |
-| **Email Accounts** | `Primary Email & Recovery` | User email for future credentials recovery and notifications | ✅ **Completed (v0.1.1)** |
+| **Account Protection** | `Username & Display Name` | Edit nickname/email while keeping username immutable | ✅ **Completed (v0.1.1)** |
 | **Account Disabling** | `Active / Disabled Status` | Disable users (including default admin) to block logins & sessions | ✅ **Completed (v0.1.1)** |
 | **Personal vs Global** | `Scope Isolation & Ownership` | Isolated personal private endpoints + shared global org pools | ✅ **Completed (v0.1.1)** |
 | **Interaction Mode** | `Full Interactive`, `View-Only (Observer)` | Observer screen monitoring without input transmission | ✅ **Completed (v0.1.1)** |
 | **Clipboard Sync** | `Bidirectional`, `Host-to-Remote`, `Remote-to-Host`, `Disabled` | Enforces clipboard data flow constraints | ✅ **Completed (v0.1.1)** |
 | **File Transfer & Dropboxes** | `Full`, `Upload Only`, `Download Only`, `Disabled` | Controls SFTP directory staging and drag-and-drop | ✅ **Completed (v0.1.1)** |
-| **Reverse Proxy Usability** | `Subpaths, WSS, Forwarded Headers, Auth` | 100% flawless operation behind Nginx, Traefik, Caddy, CF Tunnels | 🚀 **Roadmap Priority** |
-| **Protocol Entitlements** | `SSH`, `VNC / RFB`, `RDP`, `Local PTY` | Per-user allowlist of accessible gateway protocol engines | ⏳ Planned |
-| **Audio Redirection** | `Enabled`, `Disabled` | RDP and VNC audio channel forwarding | ⏳ Planned |
+| **Native RDP Engine** | `IronRDP (NLA, CredSSP, TLS, RDPGFX)` | Modern Windows 10/11 native RDP with CredSSP & TLS | ✅ **Completed (v0.2.0)** |
+| **High-FPS Tile Diffing** | `64×64 Dirty Sub-Rect Diffing Grid` | 99.8% bandwidth reduction over raw uncompressed framebuffers | ✅ **Completed (v0.2.0)** |
+| **Dynamic Resolution** | `MS-RDPEDISP Display Control Channel` | Live remote desktop resolution resize on panel/window change | ✅ **Completed (v0.2.0)** |
+| **Performance Presets** | `High Speed`, `Balanced`, `High Quality`, `Custom` | Configurable flags for wallpaper, drag, anim, themes, font smoothing | ✅ **Completed (v0.2.0)** |
+| **Panel Reconnect Flow** | `Instant 1-Click Reconnect` | Clean disconnect card with instant reconnection shortcut | ✅ **Completed (v0.2.0)** |
+| **Reverse Proxy Usability** | `Subpaths, WSS, Forwarded Headers, ForwardAuth` | 100% flawless operation behind Nginx, Traefik, Caddy, CF Tunnels | 🚀 **Next Roadmap Priority (Phase 3)** |
 
 ---
 

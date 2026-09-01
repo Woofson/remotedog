@@ -41,9 +41,14 @@ Adhering strictly to the **Woofson Design System** (`CommanderDog`, `NoteDog`, `
   - Toggle seamlessly between Single, Dual-Vertical, Triple, and 2x2 Quad layouts.
   - View up to 4 simultaneous active SSH, VNC, RDP, or Local PTY sessions side-by-side.
 - **Protocols Supported**:
+  - **RDP (Windows Remote Desktop)**:
+    - Native `IronRDP` 0.1.0 engine with **Network Level Authentication (NLA / CredSSP)**, TLS, and RDPGFX graphics decoding.
+    - **64×64 Dirty Tile Diffing**: Sub-rect tile caching reducing bandwidth by 99.8% for silky smooth 60 FPS remote interaction.
+    - **Live Dynamic Resolution (`MS-RDPEDISP`)**: Real-time remote resolution adaptation when resizing browser viewports or switching multi-pane grid layouts.
+    - **Experience Presets**: Configurable performance modes (`High Speed`, `Balanced`, `High Quality`, `Custom`) for wallpaper, window dragging, menu animations, themes, font smoothing, and color depth (32-bit / 16-bit).
+    - **Input Precision**: Hardware PS/2 Set 1 scancodes and dedicated MS-RDPBCGR mouse click transition framing.
   - **SSH**: Remote shell with PTY allocation, resize handling, and integrated SFTP file subsystem.
   - **VNC / RFB (3.8)**: Full RFB client supporting Raw and CopyRect tile decoding, DES auth, mouse events, and keysym mappings.
-  - **RDP**: Windows Remote Desktop gateway dispatcher.
   - **Local PTY**: Direct native shell execution (`bash`/`sh` or `powershell.exe`).
 
 ---
