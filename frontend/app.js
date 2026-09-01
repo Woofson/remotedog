@@ -51,7 +51,9 @@ async function checkAuth() {
 }
 
 function onAuthenticated() {
-  document.getElementById('login-modal').style.display = 'none';
+  const modal = document.getElementById('login-modal');
+  modal.classList.remove('active');
+  modal.style.display = 'none';
   document.getElementById('nav-user-name').textContent = state.currentUser.display_name || state.currentUser.username;
   document.getElementById('nav-user-avatar').textContent = (state.currentUser.username[0] || 'U').toUpperCase();
   document.getElementById('nav-user-role').textContent = state.currentUser.role;
@@ -67,8 +69,14 @@ function onAuthenticated() {
 }
 
 function showLoginModal() {
-  document.getElementById('login-modal').style.display = 'flex';
+  const modal = document.getElementById('login-modal');
+  modal.classList.add('active');
+  modal.style.display = 'flex';
   fetchAuthProviders();
+  setTimeout(() => {
+    const userInput = document.getElementById('login-username');
+    if (userInput) userInput.focus();
+  }, 100);
 }
 
 async function fetchAuthProviders() {
@@ -86,12 +94,17 @@ async function fetchAuthProviders() {
   } catch (e) {}
 }
 
-async function handleLogin(e) {
-  e.preventDefault();
+async function handleLoginSubmit() {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
+
+  if (!username) {
+    errEl.textContent = 'Please enter your username';
+    errEl.style.display = 'block';
+    return;
+  }
 
   try {
     const res = await fetch('/api/auth/login', {
@@ -116,6 +129,11 @@ async function handleLogin(e) {
     errEl.style.display = 'block';
   }
 }
+
+const handleLogin = (e) => {
+  if (e) e.preventDefault();
+  handleLoginSubmit();
+};
 
 function loginWithOidc() {
   window.location.href = '/api/auth/oidc/login';

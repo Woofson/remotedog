@@ -1,4 +1,4 @@
-# <img src="frontend/assets/logo.png" alt="RemoteDog Logo" height="40" style="vertical-align: -6px; margin-right: 8px;" /> RemoteDog
+# <img src="assets/Remotedogiconsmall.png" alt="RemoteDog Logo" height="40" style="vertical-align: -6px; margin-right: 8px;" /> RemoteDog
 
 <div align="center">
   <p><em>High-Performance, Ultra-Low-Resource Remote Gateway (RDP, VNC, SSH) in Rust & HTML5 — By Woofson</em></p>
