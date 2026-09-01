@@ -912,15 +912,23 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
   };
 
   // Mouse Inputs
-  function sendPointer(mask, x, y) {
+  let lastPointerPos = { x: -1, y: -1, mask: -1 };
+  let pointerThrottleTimer = null;
+
+  function sendPointer(mask, x, y, force = false) {
     if (ws.readyState !== WebSocket.OPEN) return;
     if (pane.conn && pane.conn.view_only) return;
+    const clampedX = Math.max(0, Math.min(canvas.width, x));
+    const clampedY = Math.max(0, Math.min(canvas.height, y));
+    if (!force && lastPointerPos.x === clampedX && lastPointerPos.y === clampedY && lastPointerPos.mask === mask) return;
+    lastPointerPos = { x: clampedX, y: clampedY, mask };
+
     const buf = new ArrayBuffer(6);
     const dv = new DataView(buf);
     dv.setUint8(0, 0x02); // POINTER_EVENT
     dv.setUint8(1, mask);
-    dv.setUint16(2, Math.max(0, Math.min(canvas.width, x)), false);
-    dv.setUint16(4, Math.max(0, Math.min(canvas.height, y)), false);
+    dv.setUint16(2, clampedX, false);
+    dv.setUint16(4, clampedY, false);
     ws.send(buf);
   }
 
@@ -936,7 +944,12 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
 
   canvas.addEventListener('mousemove', (e) => {
     const pos = getCanvasCoords(e);
-    sendPointer(mouseMask, pos.x, pos.y);
+    if (!pointerThrottleTimer) {
+      sendPointer(mouseMask, pos.x, pos.y);
+      pointerThrottleTimer = setTimeout(() => {
+        pointerThrottleTimer = null;
+      }, 16); // ~60fps throttle
+    }
   });
 
   canvas.addEventListener('mousedown', (e) => {
@@ -945,7 +958,7 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
     if (e.button === 1) mouseMask |= 2; // Middle
     if (e.button === 2) mouseMask |= 4; // Right
     const pos = getCanvasCoords(e);
-    sendPointer(mouseMask, pos.x, pos.y);
+    sendPointer(mouseMask, pos.x, pos.y, true);
     e.preventDefault();
   });
 
@@ -954,7 +967,7 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
     if (e.button === 1) mouseMask &= ~2;
     if (e.button === 2) mouseMask &= ~4;
     const pos = getCanvasCoords(e);
-    sendPointer(mouseMask, pos.x, pos.y);
+    sendPointer(mouseMask, pos.x, pos.y, true);
     e.preventDefault();
   });
 
@@ -963,8 +976,8 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
   canvas.addEventListener('wheel', (e) => {
     const pos = getCanvasCoords(e);
     const wheelMask = e.deltaY < 0 ? (mouseMask | 8) : (mouseMask | 16);
-    sendPointer(wheelMask, pos.x, pos.y);
-    sendPointer(mouseMask, pos.x, pos.y); // release wheel
+    sendPointer(wheelMask, pos.x, pos.y, true);
+    sendPointer(mouseMask, pos.x, pos.y, true); // release wheel
     e.preventDefault();
   }, { passive: false });
 

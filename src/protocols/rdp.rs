@@ -296,6 +296,142 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
         is_running_reader.store(false, Ordering::Relaxed);
     });
 
+const TILE_SIZE: usize = 64;
+
+/// Efficiently diff the current frame against the previous frame and send only dirty 64x64 tiles
+async fn process_and_send_frame(
+    ws_tx: &mpsc::Sender<Message>,
+    prev_frame: &mut Vec<u32>,
+    curr_frame: &[u32],
+    w: usize,
+    h: usize,
+) -> Result<(), ()> {
+    let total_pixels = w * h;
+    if curr_frame.len() < total_pixels {
+        return Ok(());
+    }
+
+    if prev_frame.len() != total_pixels {
+        // First frame or size changed: send full frame and cache
+        *prev_frame = curr_frame[..total_pixels].to_vec();
+
+        let mut payload = Vec::with_capacity(9 + total_pixels * 4);
+        payload.push(0x01); // Frame tile type
+        payload.extend_from_slice(&0u16.to_be_bytes()); // x = 0
+        payload.extend_from_slice(&0u16.to_be_bytes()); // y = 0
+        payload.extend_from_slice(&(w as u16).to_be_bytes()); // width
+        payload.extend_from_slice(&(h as u16).to_be_bytes()); // height
+
+        for &pixel in &curr_frame[..total_pixels] {
+            let r = ((pixel >> 16) & 0xFF) as u8;
+            let g = ((pixel >> 8) & 0xFF) as u8;
+            let b = (pixel & 0xFF) as u8;
+            payload.push(r);
+            payload.push(g);
+            payload.push(b);
+            payload.push(255);
+        }
+
+        if ws_tx.send(Message::Binary(payload)).await.is_err() {
+            return Err(());
+        }
+        return Ok(());
+    }
+
+    let tiles_x = (w + TILE_SIZE - 1) / TILE_SIZE;
+    let tiles_y = (h + TILE_SIZE - 1) / TILE_SIZE;
+
+    let mut dirty_tiles: Vec<(usize, usize, usize, usize)> = Vec::new();
+
+    for ty in 0..tiles_y {
+        let tile_y = ty * TILE_SIZE;
+        let tile_h = (h - tile_y).min(TILE_SIZE);
+
+        for tx in 0..tiles_x {
+            let tile_x = tx * TILE_SIZE;
+            let tile_w = (w - tile_x).min(TILE_SIZE);
+
+            let mut tile_changed = false;
+            for row in 0..tile_h {
+                let offset = (tile_y + row) * w + tile_x;
+                if curr_frame[offset..offset + tile_w] != prev_frame[offset..offset + tile_w] {
+                    tile_changed = true;
+                    break;
+                }
+            }
+
+            if tile_changed {
+                dirty_tiles.push((tile_x, tile_y, tile_w, tile_h));
+            }
+        }
+    }
+
+    if dirty_tiles.is_empty() {
+        return Ok(());
+    }
+
+    let total_tiles = tiles_x * tiles_y;
+
+    // If more than 40% of the screen changed at once, send a single full frame
+    if dirty_tiles.len() > (total_tiles * 2 / 5) {
+        prev_frame[..total_pixels].copy_from_slice(&curr_frame[..total_pixels]);
+
+        let mut payload = Vec::with_capacity(9 + total_pixels * 4);
+        payload.push(0x01);
+        payload.extend_from_slice(&0u16.to_be_bytes());
+        payload.extend_from_slice(&0u16.to_be_bytes());
+        payload.extend_from_slice(&(w as u16).to_be_bytes());
+        payload.extend_from_slice(&(h as u16).to_be_bytes());
+
+        for &pixel in &curr_frame[..total_pixels] {
+            let r = ((pixel >> 16) & 0xFF) as u8;
+            let g = ((pixel >> 8) & 0xFF) as u8;
+            let b = (pixel & 0xFF) as u8;
+            payload.push(r);
+            payload.push(g);
+            payload.push(b);
+            payload.push(255);
+        }
+
+        if ws_tx.send(Message::Binary(payload)).await.is_err() {
+            return Err(());
+        }
+        return Ok(());
+    }
+
+    // Otherwise, stream only the dirty tiles (typically 1-8 tiles = 16-128 KB instead of 8.3 MB!)
+    for (tile_x, tile_y, tile_w, tile_h) in dirty_tiles {
+        let mut tile_pkt = Vec::with_capacity(9 + tile_w * tile_h * 4);
+        tile_pkt.push(0x01);
+        tile_pkt.extend_from_slice(&(tile_x as u16).to_be_bytes());
+        tile_pkt.extend_from_slice(&(tile_y as u16).to_be_bytes());
+        tile_pkt.extend_from_slice(&(tile_w as u16).to_be_bytes());
+        tile_pkt.extend_from_slice(&(tile_h as u16).to_be_bytes());
+
+        for row in 0..tile_h {
+            let offset = (tile_y + row) * w + tile_x;
+            for col in 0..tile_w {
+                let pixel = curr_frame[offset + col];
+                let r = ((pixel >> 16) & 0xFF) as u8;
+                let g = ((pixel >> 8) & 0xFF) as u8;
+                let b = (pixel & 0xFF) as u8;
+                tile_pkt.push(r);
+                tile_pkt.push(g);
+                tile_pkt.push(b);
+                tile_pkt.push(255);
+
+                prev_frame[offset + col] = pixel;
+            }
+        }
+
+        if ws_tx.send(Message::Binary(tile_pkt)).await.is_err() {
+            return Err(());
+        }
+    }
+
+    Ok(())
+}
+
     let ws_out_tx_events = ws_out_tx.clone();
     let is_running_events = Arc::clone(&is_running);
 
@@ -304,18 +440,25 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
     // Process output events from the IronRDP client
     let output_loop = async move {
         let mut initial_size_sent = false;
+        let mut prev_frame: Vec<u32> = Vec::new();
 
         while let Some(event) = output_rx.recv().await {
             if !is_running_events.load(Ordering::Relaxed) {
                 break;
             }
 
-            match event {
-                RdpOutputEvent::Image { buffer, width, height } => {
-                    let w = width.get();
-                    let h = height.get();
+            // Frame coalescing: drain intermediate graphics updates to immediately process latest frame
+            let mut latest_event = event;
+            while let Ok(newer) = output_rx.try_recv() {
+                latest_event = newer;
+            }
 
-                    if !initial_size_sent || w != params.width || h != params.height {
+            match latest_event {
+                RdpOutputEvent::Image { buffer, width, height } => {
+                    let w = width.get() as usize;
+                    let h = height.get() as usize;
+
+                    if !initial_size_sent || (w as u16) != params.width || (h as u16) != params.height {
                         let _ = ws_out_tx_events
                             .send(Message::Text(
                                 json!({
@@ -331,26 +474,7 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
                         initial_size_sent = true;
                     }
 
-                    // Convert RGB to RGBA binary frame tile [0x01, x:0, y:0, w, h, rgba...]
-                    let total_pixels = (w as usize) * (h as usize);
-                    let mut payload = Vec::with_capacity(9 + total_pixels * 4);
-                    payload.push(0x01); // Frame tile
-                    payload.extend_from_slice(&0u16.to_be_bytes()); // x
-                    payload.extend_from_slice(&0u16.to_be_bytes()); // y
-                    payload.extend_from_slice(&w.to_be_bytes());     // width
-                    payload.extend_from_slice(&h.to_be_bytes());     // height
-
-                    for &pixel in &buffer {
-                        let r = ((pixel >> 16) & 0xFF) as u8;
-                        let g = ((pixel >> 8) & 0xFF) as u8;
-                        let b = (pixel & 0xFF) as u8;
-                        payload.push(r);
-                        payload.push(g);
-                        payload.push(b);
-                        payload.push(255); // Alpha
-                    }
-
-                    if ws_out_tx_events.send(Message::Binary(payload)).await.is_err() {
+                    if process_and_send_frame(&ws_out_tx_events, &mut prev_frame, &buffer, w, h).await.is_err() {
                         break;
                     }
                 }
