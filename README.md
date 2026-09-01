@@ -6,7 +6,7 @@
 
 ---
 
-## 🐕 Overview
+## Overview
 
 **RemoteDog** is a modern, single-binary replacement for Apache Guacamole built from the ground up in **Rust & HTML5**. It eliminates the heavy Java Tomcat/MySQL/`guacd` stack, replacing it with an ultra-lightweight, memory-safe, sub-millisecond asynchronous gateway using **Tokio, Axum, and pure HTML5 Canvas/WebGL**.
 

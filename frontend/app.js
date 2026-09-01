@@ -699,7 +699,7 @@ function disconnectPane(paneIndex) {
   document.getElementById(`pane-${paneIndex}-stats`).style.display = 'none';
   document.getElementById(`pane-${paneIndex}-body`).innerHTML = `
     <div class="pane-empty-state">
-      <div class="empty-icon">🐕</div>
+      <div class="empty-icon"><img src="assets/Remotedogiconsmall.png" alt="RemoteDog" class="empty-brand-img" /></div>
       <h3>Disconnected</h3>
       <button class="btn btn-primary" onclick="openConnectionsModal()">Connect Pane ${paneIndex}</button>
     </div>

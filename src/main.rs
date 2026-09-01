@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   ██╔══██╗██╔══╝  ██║╚██╔╝██║██║   ██║   ██║   ██╔══╝  ██║  ██║██║   ██║██║   ██║
   ██║  ██║███████╗██║ ╚═╝ ██║╚██████╔╝   ██║   ███████╗██████╔╝╚██████╔╝╚██████╔╝
   ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝    ╚═╝   ╚══════╝╚═════╝  ╚═════╝  ╚═════╝ 
-                 🐕 Ultra-Low-Resource Remote Gateway — By Woofson
+                 Ultra-Low-Resource Remote Gateway — By Woofson
 "#
     );
 

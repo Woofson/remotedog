@@ -360,8 +360,9 @@ pub async fn api_oidc_callback(
         <head><title>RemoteDog OIDC Authenticated</title></head>
         <body style="background:#121214;color:#f59e0b;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;">
           <div style="text-align:center;">
-            <h2>🐕 RemoteDog Authenticated!</h2>
-            <p>Redirecting to dashboard...</p>
+            <img src="/assets/Remotedogiconsmall.png" alt="RemoteDog" style="height:44px;margin-bottom:12px;vertical-align:middle;" />
+            <h2 style="margin:0;font-weight:700;color:#f4f4f5;">RemoteDog Authenticated!</h2>
+            <p style="color:#a1a1aa;margin-top:6px;">Redirecting to dashboard...</p>
           </div>
           <script>
             localStorage.setItem('remotedog_token', '{}');
