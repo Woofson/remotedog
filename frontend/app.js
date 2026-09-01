@@ -35,6 +35,7 @@ async function apiFetch(url, options = {}) {
 document.addEventListener('DOMContentLoaded', async () => {
   setupKeyboardShortcuts();
   setupGlobalDragAndDrop();
+  initPaneStyles();
   await checkAuth();
 });
 
@@ -1554,4 +1555,274 @@ function formatBytes(bytes, decimals = 2) {
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ================= Pane Settings & Border/Color Customization (CommanderDog Spirit) =================
+const PANE_COLOR_PRESETS = [
+  { id: 'default', name: 'Default', hex: 'rgba(255,255,255,0.2)' },
+  { id: 'amber', name: 'Amber', hex: '#f59e0b' },
+  { id: 'emerald', name: 'Emerald', hex: '#10b981' },
+  { id: 'sky', name: 'Sky Blue', hex: '#38bdf8' },
+  { id: 'purple', name: 'Purple', hex: '#c084fc' },
+  { id: 'rose', name: 'Rose Red', hex: '#f43f5e' },
+  { id: 'indigo', name: 'Indigo', hex: '#6366f1' },
+  { id: 'teal', name: 'Teal', hex: '#14b8a6' },
+  { id: 'orange', name: 'Orange', hex: '#f97316' }
+];
+
+const PANE_COLOR_MAP = {
+  default: '#3f3f46',
+  amber: '#f59e0b',
+  emerald: '#10b981',
+  sky: '#38bdf8',
+  purple: '#c084fc',
+  rose: '#f43f5e',
+  indigo: '#6366f1',
+  teal: '#14b8a6',
+  orange: '#f97316'
+};
+
+function getPaneColors() {
+  try {
+    return JSON.parse(localStorage.getItem('rd_pane_colors')) || { 1: 'default', 2: 'default', 3: 'default', 4: 'default' };
+  } catch (e) {
+    return { 1: 'default', 2: 'default', 3: 'default', 4: 'default' };
+  }
+}
+
+function getPaneNames() {
+  try {
+    return JSON.parse(localStorage.getItem('rd_pane_names')) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function getPaneBorderWidths() {
+  try {
+    return JSON.parse(localStorage.getItem('rd_pane_border_widths')) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function setPaneColorPref(paneIndex, color) {
+  const colors = getPaneColors();
+  colors[paneIndex] = color;
+  localStorage.setItem('rd_pane_colors', JSON.stringify(colors));
+  applyPaneStyle(paneIndex);
+}
+
+function applyPaneRenameFromInput(paneIndex) {
+  const input = document.getElementById(`pane-setting-name-input-${paneIndex}`);
+  if (!input) return;
+  const name = input.value.trim();
+  const names = getPaneNames();
+  if (name) {
+    names[paneIndex] = name;
+  } else {
+    delete names[paneIndex];
+  }
+  localStorage.setItem('rd_pane_names', JSON.stringify(names));
+  applyPaneStyle(paneIndex);
+  showToast(`Pane ${paneIndex} renamed!`);
+}
+
+function resetPaneName(paneIndex) {
+  const names = getPaneNames();
+  delete names[paneIndex];
+  localStorage.setItem('rd_pane_names', JSON.stringify(names));
+  applyPaneStyle(paneIndex);
+}
+
+function cyclePaneColor(paneIndex) {
+  const colors = getPaneColors();
+  const cur = colors[paneIndex] || 'default';
+  const keys = PANE_COLOR_PRESETS.map(p => p.id);
+  let idx = keys.indexOf(cur);
+  if (idx === -1) idx = 0;
+  const next = keys[(idx + 1) % keys.length];
+  setPaneColorPref(paneIndex, next);
+}
+
+function applyBorderSettings(borderWidth, ringStyle, paneIndex) {
+  if (paneIndex) {
+    if (borderWidth) {
+      const bws = getPaneBorderWidths();
+      bws[paneIndex] = borderWidth;
+      localStorage.setItem('rd_pane_border_widths', JSON.stringify(bws));
+    }
+  } else if (borderWidth) {
+    localStorage.setItem('rd_border_width', borderWidth);
+  }
+
+  if (ringStyle) {
+    localStorage.setItem('rd_ring_style', ringStyle);
+  }
+
+  initPaneStyles();
+}
+
+function applyPaneStyle(paneIndex) {
+  const paneEl = document.getElementById(`pane-${paneIndex}`);
+  if (!paneEl) return;
+
+  const colors = getPaneColors();
+  const names = getPaneNames();
+  const bws = getPaneBorderWidths();
+  const globalBw = localStorage.getItem('rd_border_width') || '1px';
+
+  const colorKey = colors[paneIndex] || 'default';
+  const hex = PANE_COLOR_MAP[colorKey] || colorKey;
+  const bw = bws[paneIndex] || globalBw;
+  const customName = names[paneIndex] || `[ ${paneIndex} ]`;
+
+  if (colorKey !== 'default') {
+    paneEl.style.setProperty('--pane-custom-border', hex);
+    paneEl.style.setProperty('--pane-custom-color', hex);
+  } else {
+    paneEl.style.removeProperty('--pane-custom-border');
+    paneEl.style.removeProperty('--pane-custom-color');
+  }
+
+  paneEl.style.borderWidth = bw;
+
+  const dot = document.getElementById(`pane-dot-${paneIndex}`);
+  if (dot) {
+    dot.style.background = (colorKey !== 'default') ? hex : 'var(--woofson-accent)';
+  }
+
+  const label = document.getElementById(`pane-label-${paneIndex}`);
+  if (label) {
+    label.textContent = customName.startsWith('[') ? customName : `[ ${customName} ]`;
+  }
+}
+
+function initPaneStyles() {
+  const globalBw = localStorage.getItem('rd_border_width') || '1px';
+  const ringStyle = localStorage.getItem('rd_ring_style') || 'subtle';
+  const root = document.documentElement;
+
+  root.style.setProperty('--pane-border-width', globalBw);
+
+  if (ringStyle === 'none') {
+    root.style.setProperty('--pane-active-ring-width', '0px');
+  } else if (ringStyle === 'bold') {
+    root.style.setProperty('--pane-active-ring-width', '2.5px');
+  } else if (ringStyle === 'glow') {
+    root.style.setProperty('--pane-active-ring-width', '1.5px');
+  } else {
+    root.style.setProperty('--pane-active-ring-width', '1px');
+  }
+
+  for (let i = 1; i <= 4; i++) {
+    applyPaneStyle(i);
+  }
+}
+
+function openPaneSettingsMenu(e, paneIndex) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  document.getElementById('pane-settings-popup')?.remove();
+
+  const colors = getPaneColors();
+  const names = getPaneNames();
+  const bws = getPaneBorderWidths();
+  const currentColor = colors[paneIndex] || 'default';
+  const currentName = names[paneIndex] || `${paneIndex}`;
+  const curBorderWidth = bws[paneIndex] || localStorage.getItem('rd_border_width') || '1px';
+  const curRingStyle = localStorage.getItem('rd_ring_style') || 'subtle';
+
+  const isCustomHex = currentColor.startsWith('#') || currentColor.startsWith('rgb');
+  const currentHexVal = isCustomHex ? currentColor : '#f59e0b';
+
+  const popup = document.createElement('div');
+  popup.id = 'pane-settings-popup';
+  popup.className = 'pane-settings-dropdown';
+
+  popup.innerHTML = `
+    <div style="padding: 8px 12px; font-weight: 700; font-size: 11px; color: var(--woofson-accent); background: var(--woofson-bg-void); border-bottom: 1px solid var(--woofson-border); display: flex; justify-content: space-between; align-items: center;">
+      <span style="display: flex; align-items: center; gap: 6px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Pane ${paneIndex} Settings
+      </span>
+      <span style="font-size: 11px; color: var(--woofson-text-dim); cursor: pointer;" onclick="document.getElementById('pane-settings-popup')?.remove();">✕</span>
+    </div>
+    
+    <div style="padding: 10px 12px; max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+      <!-- 1. Renaming -->
+      <div>
+        <div style="font-size: 10px; color: var(--woofson-text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">Pane Name / Label</div>
+        <div style="display: flex; gap: 6px;">
+          <input type="text" id="pane-setting-name-input-${paneIndex}" value="${escapeHtml(currentName)}" placeholder="${paneIndex}" style="flex: 1; height: 26px; padding: 0 8px; font-size: 11px; background: var(--woofson-bg-void); border: 1px solid var(--woofson-border); border-radius: 4px; color: var(--woofson-text-main);" onkeydown="if(event.key==='Enter'){ applyPaneRenameFromInput(${paneIndex}); }">
+          <button type="button" class="btn btn-sm btn-accent" style="height: 26px; padding: 0 8px; font-size: 10px;" onclick="applyPaneRenameFromInput(${paneIndex})">Save</button>
+          <button type="button" class="btn btn-sm btn-secondary" style="height: 26px; padding: 0 6px; font-size: 10px;" title="Reset to default ${paneIndex}" onclick="resetPaneName(${paneIndex}); openPaneSettingsMenu(null, ${paneIndex});">Reset</button>
+        </div>
+      </div>
+
+      <!-- 2. Border & Header Color Palette -->
+      <div style="border-top: 1px solid var(--woofson-border); padding-top: 10px;">
+        <div style="font-size: 10px; color: var(--woofson-text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between;">
+          <span>Border & Accent Color</span>
+          <span style="color: var(--woofson-accent); cursor: pointer; text-transform: none; font-weight: 600;" onclick="cyclePaneColor(${paneIndex}); openPaneSettingsMenu(null, ${paneIndex});">Cycle ↻</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px;">
+          ${PANE_COLOR_PRESETS.map(p => {
+            const isSelected = currentColor === p.id;
+            return `
+              <button type="button" class="btn btn-sm ${isSelected ? 'active' : ''}" 
+                      style="display: flex; align-items: center; gap: 5px; padding: 4px 6px; font-size: 10px; width: 100%; text-align: left; overflow: hidden;"
+                      onclick="setPaneColorPref(${paneIndex}, '${p.id}'); openPaneSettingsMenu(null, ${paneIndex});">
+                <span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: ${p.hex}; border: 1px solid rgba(255,255,255,0.25); flex-shrink: 0;"></span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${isSelected ? 'font-weight: 700; color: var(--woofson-accent);' : ''}">${p.name}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <input type="color" id="pane-hex-picker-${paneIndex}" value="${currentHexVal}" style="width: 28px; height: 26px; border: 1px solid var(--woofson-border); border-radius: 4px; padding: 0; background: transparent; cursor: pointer;" oninput="document.getElementById('pane-hex-text-${paneIndex}').value = this.value; setPaneColorPref(${paneIndex}, this.value);">
+          <input type="text" id="pane-hex-text-${paneIndex}" value="${isCustomHex ? currentColor : ''}" placeholder="#RRGGBB" style="flex: 1; height: 26px; padding: 0 6px; font-family: var(--font-mono); font-size: 11px; background: var(--woofson-bg-void); border: 1px solid var(--woofson-border); border-radius: 4px; color: var(--woofson-text-main);" onchange="if(this.value){ document.getElementById('pane-hex-picker-${paneIndex}').value = this.value; setPaneColorPref(${paneIndex}, this.value); }">
+          <button type="button" class="btn btn-sm btn-accent" style="height: 26px; padding: 0 8px; font-size: 10px;" onclick="const val = document.getElementById('pane-hex-text-${paneIndex}').value; if(val){ setPaneColorPref(${paneIndex}, val); openPaneSettingsMenu(null, ${paneIndex}); }">Apply</button>
+        </div>
+      </div>
+
+      <!-- 3. Border Width & Ring Settings -->
+      <div style="border-top: 1px solid var(--woofson-border); padding-top: 10px;">
+        <div style="font-size: 10px; color: var(--woofson-text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">Border Width (Pane ${paneIndex})</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px;">
+          ${['1px', '2px', '3px', '4px'].map(bw => `
+            <button type="button" class="btn btn-sm ${curBorderWidth === bw ? 'active' : ''}" style="padding: 2px 4px; font-size: 10px; justify-content: center;" onclick="applyBorderSettings('${bw}', null, ${paneIndex}); openPaneSettingsMenu(null, ${paneIndex});">${bw}</button>
+          `).join('')}
+        </div>
+
+        <div style="font-size: 10px; color: var(--woofson-text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">Active Focus Ring</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+          ${[['subtle', 'Subtle'], ['bold', 'Bold'], ['glow', 'Glow'], ['none', 'None']].map(([rKey, rName]) => `
+            <button type="button" class="btn btn-sm ${curRingStyle === rKey ? 'active' : ''}" style="padding: 2px 4px; font-size: 9.5px; justify-content: center;" onclick="applyBorderSettings(null, '${rKey}'); openPaneSettingsMenu(null, ${paneIndex});">${rName}</button>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+
+  const btn = document.getElementById(`pane-badge-btn-${paneIndex}`);
+  if (btn) {
+    const rect = btn.getBoundingClientRect();
+    popup.style.position = 'fixed';
+    popup.style.top = `${rect.bottom + 4}px`;
+    popup.style.left = `${Math.min(window.innerWidth - 280, Math.max(10, rect.left))}px`;
+  }
+
+  const closeHandler = (evt) => {
+    if (!popup.contains(evt.target) && (!btn || !btn.contains(evt.target))) {
+      popup.remove();
+      document.removeEventListener('click', closeHandler);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeHandler), 10);
 }

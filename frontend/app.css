@@ -445,22 +445,24 @@ body, html {
   display: flex;
   flex-direction: column;
   background: var(--woofson-bg-panel);
-  border: 1px solid var(--woofson-border);
+  border-width: var(--pane-border-width, 1px);
+  border-style: solid;
+  border-color: var(--pane-custom-border, var(--woofson-border));
   border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .remote-pane.active {
-  border-color: var(--woofson-border-focus);
-  box-shadow: 0 0 0 1px var(--woofson-accent);
+  border-color: var(--pane-custom-border, var(--woofson-border-focus));
+  box-shadow: 0 0 0 var(--pane-active-ring-width, 1px) var(--pane-custom-border, var(--woofson-accent));
 }
 
 .pane-header {
   height: 32px;
   background: var(--woofson-bg-header);
-  border-bottom: 1px solid var(--woofson-border);
+  border-bottom: 1px solid var(--pane-custom-border, var(--woofson-border));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -477,7 +479,45 @@ body, html {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
-  color: var(--woofson-accent);
+  color: var(--pane-custom-color, var(--woofson-accent));
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--pane-custom-border, rgba(255, 255, 255, 0.1));
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pane-index:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+  border-color: var(--pane-custom-color, var(--woofson-accent));
+}
+
+.pane-color-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pane-custom-color, var(--woofson-accent));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+/* Pane Settings Popup (CommanderDog Parity) */
+.pane-settings-dropdown {
+  position: fixed;
+  background: var(--woofson-bg-header, #202024);
+  border: 1px solid var(--woofson-border, #3f3f46);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  width: 270px;
+  overflow: hidden;
+  animation: fadeIn 0.12s ease;
 }
 
 .pane-conn-name {

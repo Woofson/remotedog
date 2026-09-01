@@ -117,7 +117,10 @@
       <div id="pane-1" class="remote-pane active" onclick="activatePane(1)">
         <div class="pane-header">
           <div class="pane-header-left">
-            <span class="pane-index">[ 1 ]</span>
+            <span class="pane-index" id="pane-badge-btn-1" onclick="openPaneSettingsMenu(event, 1)" title="Pane 1 Settings (Click to customize border width, color & name)">
+              <span class="pane-color-dot" id="pane-dot-1"></span>
+              <span id="pane-label-1">[ 1 ]</span>
+            </span>
             <span class="pane-conn-name" id="pane-1-title">Disconnected</span>
             <span class="pane-protocol-badge" id="pane-1-proto" style="display:none;">SSH</span>
           </div>
@@ -161,7 +164,10 @@
       <div id="pane-2" class="remote-pane" style="display:none;" onclick="activatePane(2)">
         <div class="pane-header">
           <div class="pane-header-left">
-            <span class="pane-index">[ 2 ]</span>
+            <span class="pane-index" id="pane-badge-btn-2" onclick="openPaneSettingsMenu(event, 2)" title="Pane 2 Settings (Click to customize border width, color & name)">
+              <span class="pane-color-dot" id="pane-dot-2"></span>
+              <span id="pane-label-2">[ 2 ]</span>
+            </span>
             <span class="pane-conn-name" id="pane-2-title">Disconnected</span>
             <span class="pane-protocol-badge" id="pane-2-proto" style="display:none;">SSH</span>
           </div>
@@ -181,7 +187,10 @@
       <div id="pane-3" class="remote-pane" style="display:none;" onclick="activatePane(3)">
         <div class="pane-header">
           <div class="pane-header-left">
-            <span class="pane-index">[ 3 ]</span>
+            <span class="pane-index" id="pane-badge-btn-3" onclick="openPaneSettingsMenu(event, 3)" title="Pane 3 Settings (Click to customize border width, color & name)">
+              <span class="pane-color-dot" id="pane-dot-3"></span>
+              <span id="pane-label-3">[ 3 ]</span>
+            </span>
             <span class="pane-conn-name" id="pane-3-title">Disconnected</span>
             <span class="pane-protocol-badge" id="pane-3-proto" style="display:none;">SSH</span>
           </div>
@@ -199,7 +208,10 @@
       <div id="pane-4" class="remote-pane" style="display:none;" onclick="activatePane(4)">
         <div class="pane-header">
           <div class="pane-header-left">
-            <span class="pane-index">[ 4 ]</span>
+            <span class="pane-index" id="pane-badge-btn-4" onclick="openPaneSettingsMenu(event, 4)" title="Pane 4 Settings (Click to customize border width, color & name)">
+              <span class="pane-color-dot" id="pane-dot-4"></span>
+              <span id="pane-label-4">[ 4 ]</span>
+            </span>
             <span class="pane-conn-name" id="pane-4-title">Disconnected</span>
             <span class="pane-protocol-badge" id="pane-4-proto" style="display:none;">SSH</span>
           </div>
