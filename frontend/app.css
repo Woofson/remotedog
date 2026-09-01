@@ -927,6 +927,7 @@ body, html {
   animation: loginCardPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: var(--font-sans);
   line-height: normal;
+  box-sizing: border-box;
 }
 
 @keyframes loginCardPop {
@@ -941,6 +942,8 @@ body, html {
   gap: 14px;
   border-bottom: 1px solid rgba(63, 63, 70, 0.4);
   background: linear-gradient(180deg, rgba(32, 32, 36, 0.9) 0%, rgba(24, 24, 28, 0.9) 100%);
+  height: 84px;
+  box-sizing: border-box;
 }
 
 .login-brand-icon {
@@ -956,12 +959,14 @@ body, html {
   justify-content: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .login-brand-img {
   width: 30px;
   height: 30px;
   object-fit: contain;
+  display: block;
 }
 
 .login-header-text {
@@ -986,6 +991,7 @@ body, html {
 
 .login-card-body {
   padding: 20px 24px 12px;
+  box-sizing: border-box;
 }
 
 .login-form-group {
@@ -1001,7 +1007,8 @@ body, html {
   color: var(--woofson-text-main, #f4f4f5);
   margin-bottom: 7px;
   user-select: none;
-  line-height: 1.2;
+  line-height: 1;
+  height: 14px;
 }
 
 .login-label-icon {
@@ -1020,6 +1027,7 @@ body, html {
 
 .login-input {
   width: 100%;
+  height: 36px;
   padding: 9px 12px;
   font-size: 13px;
   line-height: normal;
@@ -1067,22 +1075,38 @@ body, html {
   justify-content: flex-start;
   align-items: center;
   gap: 10px;
+  box-sizing: border-box;
 }
 
 .login-submit-btn {
   padding: 7px 18px;
   font-size: 12.5px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   cursor: pointer;
   background-color: var(--woofson-accent, #f59e0b);
   color: #121214;
   border: 1px solid var(--woofson-accent, #f59e0b);
   transition: all 0.15s ease;
+  height: 31px;
+  box-sizing: border-box;
+}
+
+.login-submit-btn span {
+  line-height: 1;
+}
+
+.login-submit-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .login-submit-btn:hover {
