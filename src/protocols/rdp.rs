@@ -28,6 +28,8 @@ pub struct RdpConnectionParams {
     pub disable_menu_animations: bool,
     pub disable_themes: bool,
     pub font_smoothing: bool,
+    pub staging_dir: Option<String>,
+    pub enable_drive_redirection: bool,
 }
 
 /// Map incoming browser mouse events (bitmask + coordinates) to IronRDP FastPath mouse events
@@ -288,6 +290,28 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
         if !dom.trim().is_empty() {
             config_builder = config_builder.with_domain(dom.trim());
         }
+    }
+
+    if params.enable_drive_redirection {
+        let staging_dir = params
+            .staging_dir
+            .clone()
+            .unwrap_or_else(|| "./data/staging".to_string());
+        let _ = std::fs::create_dir_all(&staging_dir);
+        let staging_dir_clone = staging_dir.clone();
+
+        info!(
+            "RDP Gateway: Enabling RDPDR drive redirection for staging folder '{}' as \\\\tsclient\\Dropbox",
+            staging_dir
+        );
+        config_builder = config_builder.with_static_channel(move |_ps| {
+            let backend = Box::new(ironrdp_rdpdr_native::backend::NixRdpdrBackend::new(
+                staging_dir_clone.clone(),
+            ));
+            let rdpdr = ironrdp_rdpdr::Rdpdr::new(backend, "RemoteDog".to_owned())
+                .with_drives(Some(vec![(1, "Dropbox".to_owned())]));
+            Some(rdpdr)
+        });
     }
 
     let config = match config_builder.build() {

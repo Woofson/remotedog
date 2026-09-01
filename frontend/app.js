@@ -615,6 +615,8 @@ function openEditConnectionModal(id) {
   if (disableThemes) disableThemes.checked = !!settings.disable_themes;
   const fontSmoothing = document.getElementById('conn-rdp-font-smoothing');
   if (fontSmoothing) fontSmoothing.checked = settings.font_smoothing !== false;
+  const driveRedir = document.getElementById('conn-rdp-drive-redirection');
+  if (driveRedir) driveRedir.checked = settings.enable_drive_redirection !== false;
   const audio = document.getElementById('conn-rdp-audio');
   if (audio) audio.checked = !!settings.enable_audio;
 
@@ -695,6 +697,7 @@ async function handleSaveConnection(e) {
     disable_menu_anim: document.getElementById('conn-rdp-disable-menu-anim') ? document.getElementById('conn-rdp-disable-menu-anim').checked : true,
     disable_themes: document.getElementById('conn-rdp-disable-themes') ? document.getElementById('conn-rdp-disable-themes').checked : false,
     font_smoothing: document.getElementById('conn-rdp-font-smoothing') ? document.getElementById('conn-rdp-font-smoothing').checked : true,
+    enable_drive_redirection: document.getElementById('conn-rdp-drive-redirection') ? document.getElementById('conn-rdp-drive-redirection').checked : true,
     enable_audio: document.getElementById('conn-rdp-audio') ? document.getElementById('conn-rdp-audio').checked : false,
   };
 

@@ -1381,6 +1381,8 @@ pub async fn ws_tunnel_handler(
                 let mut disable_themes = false;
                 let mut font_smoothing = true;
 
+                let mut enable_drive_redirection = conn_rec.allow_transfer != "disabled";
+
                 if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&conn_rec.settings_json) {
                     if let Some(ic) = settings.get("ignore_cert").and_then(|v| v.as_bool()) {
                         ignore_cert = ic;
@@ -1413,6 +1415,9 @@ pub async fn ws_tunnel_handler(
                     if let Some(fs) = settings.get("font_smoothing").and_then(|v| v.as_bool()) {
                         font_smoothing = fs;
                     }
+                    if let Some(edr) = settings.get("enable_drive_redirection").and_then(|v| v.as_bool()) {
+                        enable_drive_redirection = edr && conn_rec.allow_transfer != "disabled";
+                    }
                 }
 
                 let init_w = query.width.unwrap_or(1920).clamp(640, 3840);
@@ -1434,6 +1439,8 @@ pub async fn ws_tunnel_handler(
                     disable_menu_animations,
                     disable_themes,
                     font_smoothing,
+                    staging_dir: Some(cfg.storage.staging_dir.clone()),
+                    enable_drive_redirection,
                 };
                 handle_rdp_session(socket, params).await;
             }
