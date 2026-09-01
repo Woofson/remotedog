@@ -188,6 +188,7 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
     let _rdp_thread = std::thread::Builder::new()
         .name(format!("rdp-{}", thread_target))
         .spawn(move || {
+            let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
             let rt = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()

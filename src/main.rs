@@ -19,6 +19,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    remotedog::init_crypto_provider();
+
     println!(
         r#"
   ██████╗ ███████╗███╗   ███╗ ██████╗ ████████╗███████╗██████╗  ██████╗  ██████╗ 

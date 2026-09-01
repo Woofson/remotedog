@@ -5,6 +5,11 @@ pub mod protocols;
 pub mod server;
 pub mod transfer;
 
+/// Initialize the process-wide Rustls crypto provider (aws-lc-rs or ring)
+pub fn init_crypto_provider() {
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
