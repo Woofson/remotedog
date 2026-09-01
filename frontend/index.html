@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐕 RemoteDog — High-Performance Remote Gateway</title>
+  <link rel="stylesheet" href="app.css" />
+  <link rel="icon" type="image/png" href="assets/logo.png" />
+</head>
+<body>
+  <!-- Root App Container -->
+  <div id="app" class="app-root">
+
+    <!-- Top Woofson Navigation Bar -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="brand">
+          <img src="assets/logo.png" alt="RemoteDog" class="brand-logo" onerror="this.style.display='none'" />
+          <span class="brand-name"><span class="accent">Remote</span>Dog</span>
+          <span class="brand-badge">v0.1.0</span>
+        </div>
+
+        <div class="divider-v"></div>
+
+        <!-- Multi-Pane Layout Controls (Woofson Heritage: Alt+1 to Alt+4) -->
+        <div class="pane-layout-group" title="Switch Multi-Pane Layout (Alt+1 to Alt+4)">
+          <button id="btn-layout-1" class="btn-pane-layout active" onclick="setPaneLayout(1)">[ 1 ]</button>
+          <button id="btn-layout-2v" class="btn-pane-layout" onclick="setPaneLayout(2)">[ 2 ]</button>
+          <button id="btn-layout-3" class="btn-pane-layout" onclick="setPaneLayout(3)">[ 3 ]</button>
+          <button id="btn-layout-4" class="btn-pane-layout" onclick="setPaneLayout(4)">[ 4 ]</button>
+        </div>
+
+        <div class="divider-v"></div>
+
+        <!-- Connection Quick Selector -->
+        <div class="quick-connect-wrap">
+          <button id="btn-quick-connect" class="btn btn-secondary" onclick="openConnectionsModal()">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span>Connections</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Clipboard Drawer Toggle -->
+        <button id="btn-toggle-clipboard" class="btn btn-icon" title="Toggle Clipboard Drawer (Ctrl+Shift+V)" onclick="toggleClipboardDrawer()">
+          <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 16H5V5h2v3h10V5h2v14z"/></svg>
+          <span class="btn-label">Clipboard</span>
+        </button>
+
+        <!-- File Dropbox / Transfer Drawer Toggle -->
+        <button id="btn-toggle-transfers" class="btn btn-icon" title="File Dropbox & Transfers" onclick="toggleTransferDrawer()">
+          <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <span class="btn-label">Dropbox</span>
+          <span id="badge-transfer-count" class="badge-count" style="display:none;">0</span>
+        </button>
+
+        <div class="divider-v"></div>
+
+        <!-- Admin Tools (User Management, Audit, Settings) -->
+        <div id="admin-nav-group" class="admin-nav-group" style="display:none;">
+          <button class="btn btn-icon" title="User & RBAC Management" onclick="openUsersModal()">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </button>
+          <button class="btn btn-icon" title="Audit Logs" onclick="openAuditModal()">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          </button>
+          <button class="btn btn-icon" title="System Settings & OIDC" onclick="openSettingsModal()">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </button>
+        </div>
+
+        <!-- User Profile Pill -->
+        <div class="user-pill-wrap">
+          <div class="user-pill" onclick="toggleUserDropdown()">
+            <span class="user-avatar" id="nav-user-avatar">U</span>
+            <span class="user-name" id="nav-user-name">User</span>
+            <span class="user-role-badge" id="nav-user-role">Operator</span>
+          </div>
+          <div id="user-dropdown" class="dropdown-menu" style="display:none;">
+            <div class="dropdown-item" onclick="openProfileModal()">My Profile</div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item text-danger" onclick="logout()">Sign Out</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Multi-Pane Viewport Grid -->
+    <main id="viewport-grid" class="viewport-grid layout-1">
+      <!-- Panes 1 to 4 dynamically rendered -->
+      <div id="pane-1" class="remote-pane active" onclick="activatePane(1)">
+        <div class="pane-header">
+          <div class="pane-header-left">
+            <span class="pane-index">[ 1 ]</span>
+            <span class="pane-conn-name" id="pane-1-title">Disconnected</span>
+            <span class="pane-protocol-badge" id="pane-1-proto" style="display:none;">SSH</span>
+          </div>
+          <div class="pane-header-right">
+            <span class="pane-fps-pill" id="pane-1-stats" style="display:none;">0 ms</span>
+            <button class="pane-btn" title="Open SFTP Dropbox" onclick="openPaneDropbox(1)">
+              <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            </button>
+            <button class="pane-btn" title="Clipboard Sync" onclick="toggleClipboardDrawer()">
+              <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 16H5V5h2v3h10V5h2v14z"/></svg>
+            </button>
+            <button class="pane-btn" title="Toggle Scaling" onclick="togglePaneScaling(1)">
+              <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"/></svg>
+            </button>
+            <button class="pane-btn" title="Fullscreen Pane" onclick="togglePaneFullscreen(1)">
+              <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+            <button class="pane-btn text-danger" title="Disconnect" onclick="disconnectPane(1)">
+              <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="pane-body" id="pane-1-body">
+          <div class="pane-empty-state">
+            <div class="empty-icon">🐕</div>
+            <h3>No Active Connection</h3>
+            <p>Select a saved connection or launch a local terminal.</p>
+            <button class="btn btn-primary" onclick="openConnectionsModal()">Open Connections</button>
+          </div>
+        </div>
+        <!-- Drag & Drop Overlay -->
+        <div class="pane-drop-overlay" id="pane-1-dropzone">
+          <div class="drop-card">
+            <svg class="icon-lg" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            <p>Drop files here to stage & upload to remote host</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pane 2 -->
+      <div id="pane-2" class="remote-pane" style="display:none;" onclick="activatePane(2)">
+        <div class="pane-header">
+          <div class="pane-header-left">
+            <span class="pane-index">[ 2 ]</span>
+            <span class="pane-conn-name" id="pane-2-title">Disconnected</span>
+            <span class="pane-protocol-badge" id="pane-2-proto" style="display:none;">SSH</span>
+          </div>
+          <div class="pane-header-right">
+            <span class="pane-fps-pill" id="pane-2-stats" style="display:none;">0 ms</span>
+            <button class="pane-btn" title="Open SFTP Dropbox" onclick="openPaneDropbox(2)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg></button>
+            <button class="pane-btn text-danger" title="Disconnect" onclick="disconnectPane(2)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+          </div>
+        </div>
+        <div class="pane-body" id="pane-2-body">
+          <div class="pane-empty-state"><button class="btn btn-primary" onclick="openConnectionsModal()">Connect Pane 2</button></div>
+        </div>
+        <div class="pane-drop-overlay" id="pane-2-dropzone"><div class="drop-card"><p>Drop files here to upload to remote</p></div></div>
+      </div>
+
+      <!-- Pane 3 -->
+      <div id="pane-3" class="remote-pane" style="display:none;" onclick="activatePane(3)">
+        <div class="pane-header">
+          <div class="pane-header-left">
+            <span class="pane-index">[ 3 ]</span>
+            <span class="pane-conn-name" id="pane-3-title">Disconnected</span>
+            <span class="pane-protocol-badge" id="pane-3-proto" style="display:none;">SSH</span>
+          </div>
+          <div class="pane-header-right">
+            <button class="pane-btn text-danger" title="Disconnect" onclick="disconnectPane(3)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+          </div>
+        </div>
+        <div class="pane-body" id="pane-3-body">
+          <div class="pane-empty-state"><button class="btn btn-primary" onclick="openConnectionsModal()">Connect Pane 3</button></div>
+        </div>
+        <div class="pane-drop-overlay" id="pane-3-dropzone"><div class="drop-card"><p>Drop files here</p></div></div>
+      </div>
+
+      <!-- Pane 4 -->
+      <div id="pane-4" class="remote-pane" style="display:none;" onclick="activatePane(4)">
+        <div class="pane-header">
+          <div class="pane-header-left">
+            <span class="pane-index">[ 4 ]</span>
+            <span class="pane-conn-name" id="pane-4-title">Disconnected</span>
+            <span class="pane-protocol-badge" id="pane-4-proto" style="display:none;">SSH</span>
+          </div>
+          <div class="pane-header-right">
+            <button class="pane-btn text-danger" title="Disconnect" onclick="disconnectPane(4)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+          </div>
+        </div>
+        <div class="pane-body" id="pane-4-body">
+          <div class="pane-empty-state"><button class="btn btn-primary" onclick="openConnectionsModal()">Connect Pane 4</button></div>
+        </div>
+        <div class="pane-drop-overlay" id="pane-4-dropzone"><div class="drop-card"><p>Drop files here</p></div></div>
+      </div>
+    </main>
+
+    <!-- Slide-Out Bi-Directional Quick Clipboard Drawer -->
+    <aside id="clipboard-drawer" class="side-drawer" style="display:none;">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 16H5V5h2v3h10V5h2v14z"/></svg>
+          <span>Live Clipboard Sync</span>
+        </div>
+        <button class="btn-close" onclick="toggleClipboardDrawer()">&times;</button>
+      </div>
+      <div class="drawer-body">
+        <p class="text-muted text-sm">Synchronize text buffer directly between local device and active remote session.</p>
+        <textarea id="clipboard-buffer" class="input-area" rows="8" placeholder="Type or paste text here..."></textarea>
+        
+        <div class="drawer-actions">
+          <button class="btn btn-primary" onclick="pushClipboardToRemote()">
+            <span>Send to Remote Host</span>
+          </button>
+          <button class="btn btn-secondary" onclick="copyLocalClipboardToBuffer()">
+            <span>Paste from My Device</span>
+          </button>
+          <button class="btn btn-secondary" onclick="copyBufferToLocalDevice()">
+            <span>Copy to My Device</span>
+          </button>
+        </div>
+
+        <div class="form-check mt-3">
+          <input type="checkbox" id="chk-auto-clip" checked />
+          <label for="chk-auto-clip" class="text-sm">Auto-sync remote copy events to local device</label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Slide-Out File Dropbox & Transfer Manager Drawer -->
+    <aside id="transfer-drawer" class="side-drawer wide" style="display:none;">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <span>File Transfers & Dropbox</span>
+        </div>
+        <button class="btn-close" onclick="toggleTransferDrawer()">&times;</button>
+      </div>
+      <div class="drawer-body">
+        <!-- Staging Dropzone -->
+        <div class="dropbox-zone" id="drawer-dropzone" onclick="triggerFileInput()">
+          <input type="file" id="file-input" multiple style="display:none;" onchange="handleFileInputChange(event)" />
+          <svg class="icon-lg" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <h4>Drop files here or click to browse</h4>
+          <p class="text-muted text-sm">Upload files from host device to stage or push directly to remote SSH/SFTP.</p>
+        </div>
+
+        <!-- Staged Files Queue -->
+        <div class="section-title mt-4">Staged Uploads</div>
+        <div id="staged-files-list" class="transfers-list">
+          <div class="text-muted text-sm p-3 text-center">No files staged in current session.</div>
+        </div>
+
+        <!-- SFTP Remote Explorer (When connected to SSH) -->
+        <div id="sftp-explorer-section" class="mt-4" style="display:none;">
+          <div class="section-title-flex">
+            <span>Remote SFTP File Explorer</span>
+            <span id="sftp-current-path" class="text-muted text-sm">/</span>
+          </div>
+          <div id="sftp-files-list" class="sftp-tree-list"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Bottom Status Bar -->
+    <footer class="bottom-status-bar">
+      <div class="status-left">
+        <span class="status-dot online"></span>
+        <span id="global-status-text">Ready</span>
+      </div>
+      <div class="status-right">
+        <span id="active-pane-info">Active Pane: [ 1 ]</span>
+        <span class="divider-v"></span>
+        <span class="text-muted">Woofson Design System</span>
+      </div>
+    </footer>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-backdrop" style="display:none;">
+      <div class="modal-card login-card">
+        <div class="login-header">
+          <img src="assets/logo.png" alt="RemoteDog" class="login-logo" onerror="this.style.display='none'" />
+          <h2>🐕 RemoteDog</h2>
+          <p class="text-muted">Ultra-Low-Resource Remote Gateway</p>
+        </div>
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="login-username" class="form-input" required autofocus placeholder="admin" />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" class="form-input" required placeholder="••••••••" />
+          </div>
+          <div id="login-error" class="error-banner" style="display:none;"></div>
+          <button type="submit" class="btn btn-primary btn-block mt-3">Sign In</button>
+        </form>
+
+        <div id="oidc-login-section" class="mt-4" style="display:none;">
+          <div class="divider-text"><span>OR SINGLE SIGN-ON</span></div>
+          <button class="btn btn-secondary btn-block mt-2" onclick="loginWithOidc()">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+            <span id="oidc-provider-btn-label">Sign in with Authentik</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connections Manager Modal -->
+    <div id="connections-modal" class="modal-backdrop" style="display:none;">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span>Connections Directory</span>
+          </div>
+          <div class="modal-header-actions">
+            <button class="btn btn-primary btn-sm" onclick="openAddConnectionModal()">+ New Connection</button>
+            <button class="btn-close" onclick="closeConnectionsModal()">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Protocol</th>
+                  <th>Host : Port</th>
+                  <th>Username</th>
+                  <th>Tags</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="connections-table-body">
+                <tr><td colspan="6" class="text-center text-muted">Loading connections...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Connection Modal -->
+    <div id="connection-edit-modal" class="modal-backdrop" style="display:none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-title" id="connection-edit-title">New Connection</span>
+          <button class="btn-close" onclick="closeConnectionEditModal()">&times;</button>
+        </div>
+        <form id="connection-edit-form" onsubmit="handleSaveConnection(event)">
+          <input type="hidden" id="conn-id" />
+          <div class="form-group">
+            <label>Connection Name *</label>
+            <input type="text" id="conn-name" class="form-input" required placeholder="e.g. Production Web Server" />
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Protocol *</label>
+              <select id="conn-protocol" class="form-input" onchange="onProtocolChanged()">
+                <option value="ssh">SSH (Terminal & SFTP)</option>
+                <option value="vnc">VNC / RFB (Remote Desktop)</option>
+                <option value="rdp">RDP (Windows Remote Desktop)</option>
+                <option value="local_pty">Local PTY (Direct Shell)</option>
+              </select>
+            </div>
+            <div class="form-group flex-2" id="group-host">
+              <label>Host Address *</label>
+              <input type="text" id="conn-host" class="form-input" placeholder="192.168.1.100" />
+            </div>
+            <div class="form-group flex-1" id="group-port">
+              <label>Port *</label>
+              <input type="number" id="conn-port" class="form-input" value="22" />
+            </div>
+          </div>
+          <div class="form-row" id="group-auth-user">
+            <div class="form-group flex-1">
+              <label>Username</label>
+              <input type="text" id="conn-username" class="form-input" placeholder="root / Administrator" />
+            </div>
+            <div class="form-group flex-1">
+              <label>Password</label>
+              <input type="password" id="conn-password" class="form-input" placeholder="••••••••" />
+            </div>
+          </div>
+          <div class="form-group" id="group-ssh-key">
+            <label>SSH Private Key (Optional)</label>
+            <textarea id="conn-private-key" class="form-input" rows="3" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Tags (Comma-separated)</label>
+            <input type="text" id="conn-tags" class="form-input" placeholder="prod, linux, aws" />
+          </div>
+          <div class="modal-footer mt-3">
+            <button type="button" class="btn btn-secondary" onclick="closeConnectionEditModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Connection</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- User & RBAC Management Modal (Admin) -->
+    <div id="users-modal" class="modal-backdrop" style="display:none;">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            <span>User Management & RBAC</span>
+          </div>
+          <div class="modal-header-actions">
+            <button class="btn btn-primary btn-sm" onclick="openAddUserModal()">+ Add User</button>
+            <button class="btn-close" onclick="closeUsersModal()">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Auth Provider</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div id="user-edit-modal" class="modal-backdrop" style="display:none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-title" id="user-edit-title">Add User</span>
+          <button class="btn-close" onclick="closeUserEditModal()">&times;</button>
+        </div>
+        <form id="user-edit-form" onsubmit="handleSaveUser(event)">
+          <input type="hidden" id="edit-user-id" />
+          <div class="form-group">
+            <label>Username *</label>
+            <input type="text" id="edit-user-username" class="form-input" required />
+          </div>
+          <div class="form-group" id="group-edit-user-pw">
+            <label>Password *</label>
+            <input type="password" id="edit-user-password" class="form-input" placeholder="••••••••" />
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="edit-user-role" class="form-input">
+              <option value="admin">Administrator (Full Access)</option>
+              <option value="operator" selected>Operator (Connect & Edit)</option>
+              <option value="viewer">Viewer (Read-Only Connect)</option>
+            </select>
+          </div>
+          <div class="modal-footer mt-3">
+            <button type="button" class="btn btn-secondary" onclick="closeUserEditModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Settings & Authentik OIDC Modal -->
+    <div id="settings-modal" class="modal-backdrop" style="display:none;">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">
+            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            <span>System Settings & Authentik / OIDC Configuration</span>
+          </div>
+          <button class="btn-close" onclick="closeSettingsModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="settings-section">
+            <h4>Authentik / Keycloak OpenID Connect (SSO)</h4>
+            <p class="text-muted text-sm">Configure single sign-on with Authentik or any standard OAuth2 / OIDC identity provider.</p>
+            <div id="settings-oidc-details" class="settings-grid mt-3"></div>
+          </div>
+          <div class="settings-section mt-4">
+            <h4>Clipboard & Security Rules</h4>
+            <div class="settings-grid mt-3" id="settings-general-details"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs Modal -->
+    <div id="audit-modal" class="modal-backdrop" style="display:none;">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <span class="modal-title">System Audit & Access Logs</span>
+          <button class="btn-close" onclick="closeAuditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Action</th>
+                <th>Connection</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
