@@ -4,6 +4,7 @@ use ironrdp_client::config::{ConfigBuilder, Destination};
 use ironrdp_client::rdp::{RdpClient, RdpInputEvent, RdpOutputEvent};
 use ironrdp_pdu::input::fast_path::{FastPathInputEvent, KeyboardFlags};
 use ironrdp_pdu::input::mouse::{MousePdu, PointerFlags};
+use ironrdp_pdu::rdp::capability_sets::MajorPlatformType;
 use serde_json::json;
 use smallvec::smallvec;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -136,6 +137,9 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
     );
 
     let destination = Destination::from_parts(params.host.clone(), params.port);
+    let username = params.username.as_deref().unwrap_or("").trim();
+    let password = params.password.as_deref().unwrap_or("");
+
     let mut config_builder = ConfigBuilder::new()
         .with_destination(destination)
         .with_desktop_width(params.width.max(640))
@@ -143,18 +147,14 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
         .with_credssp(true)
         .with_tls(true)
         .with_pointer_software_rendering(true)
-        .with_compression(true);
+        .with_compression(true)
+        .with_client_build(2600)
+        .with_client_dir("C:\\Windows\\System32")
+        .with_client_name("RemoteDog")
+        .with_platform(MajorPlatformType::WINDOWS)
+        .with_username(username)
+        .with_password(password);
 
-    if let Some(user) = &params.username {
-        if !user.trim().is_empty() {
-            config_builder = config_builder.with_username(user.trim());
-        }
-    }
-    if let Some(pass) = &params.password {
-        if !pass.is_empty() {
-            config_builder = config_builder.with_password(pass);
-        }
-    }
     if let Some(dom) = &params.domain {
         if !dom.trim().is_empty() {
             config_builder = config_builder.with_domain(dom.trim());
