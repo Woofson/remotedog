@@ -1249,6 +1249,8 @@ pub struct WsQuery {
     pub token: Option<String>,
     pub cols: Option<u16>,
     pub rows: Option<u16>,
+    pub width: Option<u16>,
+    pub height: Option<u16>,
 }
 
 pub async fn ws_tunnel_handler(
@@ -1413,6 +1415,9 @@ pub async fn ws_tunnel_handler(
                     }
                 }
 
+                let init_w = query.width.unwrap_or(1920).clamp(640, 3840);
+                let init_h = query.height.unwrap_or(1080).clamp(480, 2160);
+
                 let params = RdpConnectionParams {
                     host: conn_rec.host,
                     port: conn_rec.port,
@@ -1420,8 +1425,8 @@ pub async fn ws_tunnel_handler(
                     password,
                     domain,
                     ignore_cert,
-                    width: 1920,
-                    height: 1080,
+                    width: init_w,
+                    height: init_h,
                     color_depth,
                     enable_audio,
                     disable_wallpaper,

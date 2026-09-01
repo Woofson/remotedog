@@ -412,10 +412,26 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
                 }
                 Message::Text(txt) => {
                     if let Ok(val) = serde_json::from_str::<serde_json::Value>(&txt) {
-                        if val.get("type").and_then(|v| v.as_str()) == Some("ping") {
+                        let msg_type = val.get("type").and_then(|v| v.as_str());
+                        if msg_type == Some("ping") {
                             let _ = ws_out_tx_reader
                                 .send(Message::Text(json!({"type": "pong"}).to_string()))
                                 .await;
+                        } else if msg_type == Some("resize") {
+                            if let (Some(w), Some(h)) = (
+                                val.get("width").and_then(|v| v.as_u64()),
+                                val.get("height").and_then(|v| v.as_u64()),
+                            ) {
+                                let w = (w as u16).clamp(640, 3840);
+                                let h = (h as u16).clamp(480, 2160);
+                                info!("RDP Gateway: Dynamic resolution resize requested: {}x{}", w, h);
+                                let _ = input_sender_rx.send(RdpInputEvent::Resize {
+                                    width: w,
+                                    height: h,
+                                    scale_factor: 100,
+                                    physical_size: None,
+                                });
+                            }
                         }
                     }
                 }
@@ -573,6 +589,8 @@ async fn process_and_send_frame(
     // Process output events from the IronRDP client
     let output_loop = async move {
         let mut initial_size_sent = false;
+        let mut current_w = 0u16;
+        let mut current_h = 0u16;
         let mut prev_frame: Vec<u32> = Vec::new();
 
         while let Some(event) = output_rx.recv().await {
@@ -591,7 +609,9 @@ async fn process_and_send_frame(
                     let w = width.get() as usize;
                     let h = height.get() as usize;
 
-                    if !initial_size_sent || (w as u16) != params.width || (h as u16) != params.height {
+                    if !initial_size_sent || (w as u16) != current_w || (h as u16) != current_h {
+                        current_w = w as u16;
+                        current_h = h as u16;
                         let _ = ws_out_tx_events
                             .send(Message::Text(
                                 json!({

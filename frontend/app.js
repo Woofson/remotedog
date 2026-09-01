@@ -786,8 +786,12 @@ function connectToTarget(connectionId) {
   pane.conn = conn;
   pane.type = conn.protocol;
 
+  const rect = bodyEl.getBoundingClientRect();
+  const initW = Math.min(3840, Math.max(640, Math.round(rect.width) || 1920));
+  const initH = Math.min(2160, Math.max(480, Math.round(rect.height) || 1080));
+
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${location.host}/ws/tunnel/${conn.id}?token=${encodeURIComponent(state.jwtToken)}&cols=120&rows=32`;
+  const wsUrl = `${protocol}//${location.host}/ws/tunnel/${conn.id}?token=${encodeURIComponent(state.jwtToken)}&width=${initW}&height=${initH}&cols=120&rows=32`;
 
   const ws = new WebSocket(wsUrl);
   ws.binaryType = 'arraybuffer';
@@ -952,6 +956,37 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
   const ctx = canvas.getContext('2d');
   pane.canvas = canvas;
   pane.ctx = ctx;
+
+  // Dynamic Resolution Engine: Automatically adjust remote desktop resolution when panel resizes
+  let resizeDebounceTimer = null;
+  const resizeObserver = new ResizeObserver((entries) => {
+    if (ws.readyState !== WebSocket.OPEN) return;
+    if (pane.conn && pane.conn.protocol !== 'rdp') return;
+
+    for (const entry of entries) {
+      const cr = entry.contentRect;
+      if (cr.width < 200 || cr.height < 200) continue;
+
+      const newW = Math.min(3840, Math.max(640, Math.round(cr.width)));
+      const newH = Math.min(2160, Math.max(480, Math.round(cr.height)));
+
+      // If current canvas size differs by more than 32px, request dynamic resolution change
+      if (Math.abs(canvas.width - newW) > 32 || Math.abs(canvas.height - newH) > 32) {
+        clearTimeout(resizeDebounceTimer);
+        resizeDebounceTimer = setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'resize',
+              width: newW,
+              height: newH,
+            }));
+          }
+        }, 500); // 500ms debounce
+      }
+    }
+  });
+  resizeObserver.observe(bodyEl);
+  pane.resizeObserver = resizeObserver;
 
   // Background black fill
   ctx.fillStyle = '#000000';
@@ -1135,6 +1170,10 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
 function disconnectPane(paneIndex) {
   const pane = state.panes[paneIndex];
   const prevConn = pane.conn;
+  if (pane.resizeObserver) {
+    pane.resizeObserver.disconnect();
+    pane.resizeObserver = null;
+  }
   if (pane.socket) {
     pane.socket.close();
     pane.socket = null;
