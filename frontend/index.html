@@ -16,34 +16,29 @@
       <div class="logo-area" style="display: flex; align-items: center; gap: 8px;">
         <img src="assets/Remotedogiconsmall.png" alt="RemoteDog" style="height: 22px; width: auto; object-fit: contain; vertical-align: middle;" />
         <span class="app-logo-text" style="font-weight: 700;">RemoteDog</span>
-        <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: var(--woofson-accent, #f59e0b); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">v0.1.0</span>
       </div>
 
       <!-- Right-Aligned Tools, Layout Switchers & Profile Controls -->
       <div class="header-actions header-actions-right">
         <!-- New Connection Button -->
-        <button class="btn btn-accent" id="btn-header-new-conn" onclick="openAddConnectionModal()" title="New Connection">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          <span>New Connection</span>
+        <button class="btn btn-icon btn-accent" id="btn-header-new-conn" onclick="openAddConnectionModal()" title="New Connection">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
 
         <!-- Connections Directory Button -->
-        <button class="btn" id="btn-header-connections" onclick="openConnectionsModal()" title="Connections Directory">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-          <span>Connections</span>
+        <button class="btn btn-icon" id="btn-header-connections" onclick="openConnectionsModal()" title="Connections Directory">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
         </button>
 
         <!-- Clipboard Drawer Toggle Button -->
-        <button class="btn" id="btn-header-clipboard" onclick="toggleClipboardDrawer()" title="Clipboard Sync & Drawer (Ctrl+Shift+V)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-          <span>Clipboard</span>
+        <button class="btn btn-icon" id="btn-header-clipboard" onclick="toggleClipboardDrawer()" title="Clipboard Sync & Drawer (Ctrl+Shift+V)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
         </button>
 
         <!-- File Dropbox / Transfer Drawer Toggle Button -->
-        <button class="btn" id="btn-header-dropbox" onclick="toggleTransferDrawer()" title="Dropbox & File Staging">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          <span>Dropboxes</span>
-          <span id="badge-transfer-count" class="badge-count" style="display:none;background:var(--woofson-accent,#f59e0b);color:#121214;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:4px;">0</span>
+        <button class="btn btn-icon" id="btn-header-dropbox" onclick="toggleTransferDrawer()" title="Dropbox & File Staging" style="position: relative;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span id="badge-transfer-count" class="badge-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--woofson-accent,#f59e0b);color:#121214;font-size:9px;font-weight:700;padding:1px 4px;border-radius:10px;line-height:1;">0</span>
         </button>
 
         <div class="header-sep desktop-only"></div>
@@ -295,7 +290,7 @@
       <div class="status-right">
         <span id="active-pane-info">Active Pane: [ 1 ]</span>
         <span class="divider-v"></span>
-        <span class="text-muted">Woofson Design System</span>
+        <span class="text-muted" style="font-family: var(--font-mono, monospace); font-size: 11px;">v0.1.0</span>
       </div>
     </footer>
 
@@ -512,7 +507,7 @@
           <div class="form-group">
             <label>Role</label>
             <select id="edit-user-role" class="form-input">
-              <option value="admin">Administrator (Full Access)</option>
+              <option value="admin">Admin (Full Access)</option>
               <option value="operator" selected>Operator (Connect & Edit)</option>
               <option value="viewer">Viewer (Read-Only Connect)</option>
             </select>
@@ -637,7 +632,7 @@
             <div class="profile-avatar-large" id="profile-modal-avatar">A</div>
             <div>
               <h3 id="profile-modal-username" style="margin: 0; font-size: 16px; font-weight: 700;">admin</h3>
-              <p id="profile-modal-role" class="text-muted text-sm" style="margin: 2px 0 0;">Administrator</p>
+              <p id="profile-modal-role" class="text-muted text-sm" style="margin: 2px 0 0;">Admin</p>
             </div>
           </div>
           <form id="profile-update-form" onsubmit="handleUpdateProfile(event)">

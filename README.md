@@ -148,6 +148,12 @@ remotedog/
 
 ---
 
+## 🗺️ Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for the detailed architectural plan, including granular RBAC connection policies, clipboard & file transfer permissions, session recording, and Authentik directory sync.
+
+---
+
 ## 📜 License
 
 MIT License — Copyright (c) 2026 Bolt J Woofson
