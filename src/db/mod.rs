@@ -21,6 +21,7 @@ pub struct User {
     pub oidc_sub: Option<String>,
     pub created_at: String,
     pub last_login: Option<String>,
+    pub avatar_data: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +35,7 @@ pub struct UserSafe {
     pub auth_provider: String,
     pub created_at: String,
     pub last_login: Option<String>,
+    pub avatar_data: Option<String>,
     pub groups: Vec<String>,
 }
 
@@ -49,6 +51,7 @@ impl From<User> for UserSafe {
             auth_provider: u.auth_provider,
             created_at: u.created_at,
             last_login: u.last_login,
+            avatar_data: u.avatar_data,
             groups: Vec::new(),
         }
     }
@@ -185,7 +188,8 @@ impl Database {
                 auth_provider TEXT NOT NULL DEFAULT 'local',
                 oidc_sub TEXT UNIQUE,
                 created_at TEXT NOT NULL,
-                last_login TEXT
+                last_login TEXT,
+                avatar_data TEXT
             );
 
             CREATE TABLE IF NOT EXISTS groups (
@@ -262,6 +266,11 @@ impl Database {
             CREATE INDEX IF NOT EXISTS idx_connections_protocol ON connections(protocol);
             ",
         )?;
+
+        // Portable migrations for existing SQLite databases
+        let _ = conn.execute("ALTER TABLE users ADD COLUMN avatar_data TEXT;", []);
+        let _ = conn.execute("UPDATE users SET display_name = 'admin' WHERE username = 'admin' AND display_name = 'Administrator';", []);
+
         Ok(())
     }
 
@@ -272,8 +281,8 @@ impl Database {
             let id = Uuid::new_v4().to_string();
             let now = Utc::now().to_rfc3339();
             conn.execute(
-                "INSERT INTO users (id, username, password_hash, display_name, role, is_active, auth_provider, created_at)
-                 VALUES (?1, 'admin', ?2, 'Administrator', 'admin', 1, 'local', ?3)",
+                "INSERT INTO users (id, username, password_hash, display_name, role, is_active, auth_provider, created_at, avatar_data)
+                 VALUES (?1, 'admin', ?2, 'admin', 'admin', 1, 'local', ?3, NULL)",
                 params![id, password_hash, now],
             )?;
 
@@ -296,7 +305,7 @@ impl Database {
     pub fn get_user_by_username(&self, username: &str) -> SqlResult<Option<User>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login 
+            "SELECT id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login, avatar_data 
              FROM users WHERE username = ?1 COLLATE NOCASE",
         )?;
         let mut rows = stmt.query(params![username])?;
@@ -313,6 +322,7 @@ impl Database {
                 oidc_sub: row.get(8)?,
                 created_at: row.get(9)?,
                 last_login: row.get(10)?,
+                avatar_data: row.get(11)?,
             }))
         } else {
             Ok(None)
@@ -322,7 +332,7 @@ impl Database {
     pub fn get_user_by_id(&self, id: &str) -> SqlResult<Option<User>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login 
+            "SELECT id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login, avatar_data 
              FROM users WHERE id = ?1",
         )?;
         let mut rows = stmt.query(params![id])?;
@@ -339,6 +349,7 @@ impl Database {
                 oidc_sub: row.get(8)?,
                 created_at: row.get(9)?,
                 last_login: row.get(10)?,
+                avatar_data: row.get(11)?,
             }))
         } else {
             Ok(None)
@@ -348,7 +359,7 @@ impl Database {
     pub fn get_user_by_oidc_sub(&self, sub: &str) -> SqlResult<Option<User>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login 
+            "SELECT id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login, avatar_data 
              FROM users WHERE oidc_sub = ?1",
         )?;
         let mut rows = stmt.query(params![sub])?;
@@ -365,6 +376,7 @@ impl Database {
                 oidc_sub: row.get(8)?,
                 created_at: row.get(9)?,
                 last_login: row.get(10)?,
+                avatar_data: row.get(11)?,
             }))
         } else {
             Ok(None)
@@ -374,7 +386,7 @@ impl Database {
     pub fn list_users(&self) -> SqlResult<Vec<UserSafe>> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare(
-            "SELECT id, username, email, display_name, role, is_active, auth_provider, created_at, last_login 
+            "SELECT id, username, email, display_name, role, is_active, auth_provider, created_at, last_login, avatar_data 
              FROM users ORDER BY username ASC",
         )?;
         let rows = stmt.query_map([], |row| {
@@ -388,6 +400,7 @@ impl Database {
                 auth_provider: row.get(6)?,
                 created_at: row.get(7)?,
                 last_login: row.get(8)?,
+                avatar_data: row.get(9)?,
                 groups: Vec::new(),
             })
         })?;
@@ -413,8 +426,8 @@ impl Database {
     pub fn create_user(&self, user: &User) -> SqlResult<()> {
         let conn = self.conn.lock();
         conn.execute(
-            "INSERT INTO users (id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            "INSERT INTO users (id, username, password_hash, email, display_name, role, is_active, auth_provider, oidc_sub, created_at, last_login, avatar_data)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
                 user.id,
                 user.username,
@@ -426,7 +439,8 @@ impl Database {
                 user.auth_provider,
                 user.oidc_sub,
                 user.created_at,
-                user.last_login
+                user.last_login,
+                user.avatar_data
             ],
         )?;
         Ok(())
@@ -435,13 +449,15 @@ impl Database {
     pub fn update_user(&self, user: &User) -> SqlResult<()> {
         let conn = self.conn.lock();
         conn.execute(
-            "UPDATE users SET email = ?1, display_name = ?2, role = ?3, is_active = ?4, password_hash = ?5 WHERE id = ?6",
+            "UPDATE users SET username = ?1, email = ?2, display_name = ?3, role = ?4, is_active = ?5, password_hash = ?6, avatar_data = ?7 WHERE id = ?8",
             params![
+                user.username,
                 user.email,
                 user.display_name,
                 user.role,
                 if user.is_active { 1 } else { 0 },
                 user.password_hash,
+                user.avatar_data,
                 user.id
             ],
         )?;

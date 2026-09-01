@@ -339,6 +339,7 @@ pub async fn api_oidc_callback(
                 oidc_sub: Some(user_info.sub),
                 created_at: chrono::Utc::now().to_rfc3339(),
                 last_login: Some(chrono::Utc::now().to_rfc3339()),
+                avatar_data: None,
             };
 
             state.db.create_user(&new_user).map_err(|e| {
@@ -439,6 +440,7 @@ pub async fn api_create_user(
         oidc_sub: None,
         created_at: chrono::Utc::now().to_rfc3339(),
         last_login: None,
+        avatar_data: None,
     };
 
     state.db.create_user(&new_user).map_err(|e| {
@@ -453,11 +455,14 @@ pub async fn api_create_user(
 
 #[derive(Deserialize)]
 pub struct UpdateUserPayload {
+    pub username: Option<String>,
     pub email: Option<String>,
     pub display_name: Option<String>,
     pub role: Option<String>,
     pub is_active: Option<bool>,
     pub new_password: Option<String>,
+    pub password: Option<String>,
+    pub avatar_data: Option<String>,
 }
 
 pub async fn api_update_user(
@@ -491,12 +496,31 @@ pub async fn api_update_user(
             )
         })?;
 
+    if let Some(un) = payload.username {
+        let trimmed = un.trim().to_string();
+        if !trimmed.is_empty() && trimmed != user.username {
+            if let Ok(Some(existing)) = state.db.get_user_by_username(&trimmed) {
+                if existing.id != user.id {
+                    return Err((
+                        StatusCode::CONFLICT,
+                        Json(json!({ "error": "Username is already taken" })),
+                    ));
+                }
+            }
+            user.username = trimmed;
+        }
+    }
+
     if let Some(em) = payload.email {
         user.email = Some(em);
     }
     if let Some(dn) = payload.display_name {
         user.display_name = Some(dn);
     }
+    if let Some(av) = payload.avatar_data {
+        user.avatar_data = if av.trim().is_empty() { None } else { Some(av) };
+    }
+
     if claims.role == "admin" {
         if let Some(r) = payload.role {
             user.role = r;
@@ -505,7 +529,9 @@ pub async fn api_update_user(
             user.is_active = active;
         }
     }
-    if let Some(pw) = payload.new_password {
+
+    let pw_opt = payload.new_password.or(payload.password);
+    if let Some(pw) = pw_opt {
         if !pw.trim().is_empty() {
             user.password_hash = hash_password(&pw)
                 .map_err(|e| (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))))?;
@@ -519,7 +545,8 @@ pub async fn api_update_user(
         )
     })?;
 
-    Ok(Json(json!({ "message": "User updated successfully" })))
+    let safe_user: UserSafe = user.into();
+    Ok(Json(json!({ "message": "User updated successfully", "user": safe_user })))
 }
 
 pub async fn api_delete_user(

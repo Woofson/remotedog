@@ -50,37 +50,104 @@ async function checkAuth() {
   }
 }
 
+function renderAvatarElement(el, avatar, fallbackText) {
+  if (!el) return;
+  const isImage = avatar && (avatar.startsWith('data:image') || avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/'));
+  if (isImage) {
+    el.innerHTML = `<img src="${avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block;">`;
+  } else {
+    el.innerHTML = '';
+    el.textContent = (fallbackText || 'A').toUpperCase();
+  }
+}
+
+function handleAvatarFileUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select a valid image file (JPEG, PNG, WebP)', 'warning');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const targetSize = 160;
+      canvas.width = targetSize;
+      canvas.height = targetSize;
+      const ctx = canvas.getContext('2d');
+
+      const minDim = Math.min(img.width, img.height);
+      const startX = (img.width - minDim) / 2;
+      const startY = (img.height - minDim) / 2;
+
+      ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, targetSize, targetSize);
+
+      let dataUri = canvas.toDataURL('image/webp', 0.85);
+      if (!dataUri.startsWith('data:image/webp')) {
+        dataUri = canvas.toDataURL('image/jpeg', 0.85);
+      }
+
+      const avatarInput = document.getElementById('profile-avatar-data');
+      const avatarPreview = document.getElementById('profile-modal-avatar');
+      if (avatarInput) avatarInput.value = dataUri;
+      if (avatarPreview) renderAvatarElement(avatarPreview, dataUri);
+      showToast('Profile photo ready! Click "Save Changes" to apply.', 'info');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetAvatarToDefault() {
+  const avatarInput = document.getElementById('profile-avatar-data');
+  const avatarPreview = document.getElementById('profile-modal-avatar');
+  if (avatarInput) avatarInput.value = '';
+  const initial = (state.currentUser?.username?.[0] || 'A').toUpperCase();
+  if (avatarPreview) renderAvatarElement(avatarPreview, '', initial);
+  showToast('Photo cleared. Click "Save Changes" to apply.', 'info');
+}
+
+function updateHeaderProfile(user) {
+  if (!user) user = state.currentUser;
+  if (!user) return;
+  const uname = user.display_name || user.username || 'admin';
+  const initial = (user.username?.[0] || 'A').toUpperCase();
+  const roleStr = (user.role || 'operator').toUpperCase();
+  const avatar = user.avatar_data || '';
+
+  const navName = document.getElementById('nav-user-name');
+  if (navName) navName.textContent = uname;
+  const navAvatar = document.getElementById('nav-user-avatar');
+  if (navAvatar) renderAvatarElement(navAvatar, avatar, initial);
+  const navRole = document.getElementById('nav-user-role');
+  if (navRole) navRole.textContent = roleStr;
+
+  const menuName = document.getElementById('menu-user-name');
+  if (menuName) menuName.textContent = uname;
+  const menuEmail = document.getElementById('menu-user-email');
+  if (menuEmail) menuEmail.textContent = user.email || `${user.username}@remotedog.local`;
+  const menuAvatar = document.getElementById('menu-avatar-large');
+  if (menuAvatar) renderAvatarElement(menuAvatar, avatar, initial);
+
+  const adminItem = document.getElementById('admin-nav-item');
+  if (adminItem) {
+    adminItem.style.display = user.role === 'admin' ? 'flex' : 'none';
+  }
+}
+
 function onAuthenticated() {
   const modal = document.getElementById('login-modal');
   if (modal) {
     modal.classList.remove('active');
     modal.style.display = 'none';
   }
-  const name = state.currentUser.display_name || state.currentUser.username;
-  const initial = (state.currentUser.username[0] || 'U').toUpperCase();
-  const role = (state.currentUser.role || 'operator').toUpperCase();
-
-  const navName = document.getElementById('nav-user-name');
-  if (navName) navName.textContent = name;
-  const navAvatar = document.getElementById('nav-user-avatar');
-  if (navAvatar) navAvatar.textContent = initial;
-  const navRole = document.getElementById('nav-user-role');
-  if (navRole) navRole.textContent = role;
-
-  const menuName = document.getElementById('menu-user-name');
-  if (menuName) menuName.textContent = name;
-  const menuAvatar = document.getElementById('menu-avatar-large');
-  if (menuAvatar) menuAvatar.textContent = initial;
-  const menuEmail = document.getElementById('menu-user-email');
-  if (menuEmail) menuEmail.textContent = `${state.currentUser.username}@remotedog.local`;
-
-  const adminItem = document.getElementById('admin-nav-item');
-  if (adminItem) {
-    adminItem.style.display = state.currentUser.role === 'admin' ? 'flex' : 'none';
-  }
-
+  updateHeaderProfile();
   loadConnections();
-  showToast(`Welcome back, ${name}!`);
+  showToast(`Welcome back, ${state.currentUser.display_name || state.currentUser.username}!`);
 }
 
 function showLoginModal() {
@@ -233,14 +300,19 @@ function openUserProfileModal() {
   const menu = document.getElementById('profile-dropdown-menu');
   if (menu) { menu.classList.remove('active'); menu.style.display = 'none'; }
   if (state.currentUser) {
-    const uEl = document.getElementById('profile-modal-username');
-    if (uEl) uEl.textContent = state.currentUser.username;
-    const rEl = document.getElementById('profile-modal-role');
-    if (rEl) rEl.textContent = (state.currentUser.role || 'Operator').toUpperCase();
-    const aEl = document.getElementById('profile-modal-avatar');
-    if (aEl) aEl.textContent = (state.currentUser.username[0] || 'U').toUpperCase();
-    const dEl = document.getElementById('profile-display-name');
-    if (dEl) dEl.value = state.currentUser.display_name || '';
+    const uInput = document.getElementById('profile-username');
+    if (uInput) uInput.value = state.currentUser.username || '';
+    const dInput = document.getElementById('profile-display-name');
+    if (dInput) dInput.value = state.currentUser.display_name || '';
+    const pwInput = document.getElementById('profile-new-password');
+    if (pwInput) pwInput.value = '';
+    const avatarInput = document.getElementById('profile-avatar-data');
+    if (avatarInput) avatarInput.value = state.currentUser.avatar_data || '';
+    const aPreview = document.getElementById('profile-modal-avatar');
+    const initial = (state.currentUser.username?.[0] || 'A').toUpperCase();
+    if (aPreview) renderAvatarElement(aPreview, state.currentUser.avatar_data, initial);
+    const msgEl = document.getElementById('profile-modal-msg');
+    if (msgEl) msgEl.style.display = 'none';
   }
   const m = document.getElementById('user-profile-modal');
   if (m) { m.classList.add('active'); m.style.display = 'flex'; }
@@ -253,25 +325,43 @@ function closeUserProfileModal() {
 
 async function handleUpdateProfile(e) {
   e.preventDefault();
+  const username = document.getElementById('profile-username').value.trim();
   const displayName = document.getElementById('profile-display-name').value.trim();
   const newPassword = document.getElementById('profile-new-password').value;
+  const avatarData = document.getElementById('profile-avatar-data').value;
   const msgEl = document.getElementById('profile-modal-msg');
   
+  if (!username) {
+    alert('Username cannot be empty');
+    return;
+  }
+
   try {
-    const payload = { display_name: displayName };
-    if (newPassword) payload.password = newPassword;
+    const payload = {
+      username: username,
+      display_name: displayName,
+      avatar_data: avatarData,
+    };
+    if (newPassword && newPassword.trim()) {
+      payload.password = newPassword;
+    }
     const res = await apiFetch(`/api/users/${state.currentUser.id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      state.currentUser.display_name = displayName;
-      const navName = document.getElementById('nav-user-name');
-      if (navName) navName.textContent = displayName || state.currentUser.username;
-      const menuName = document.getElementById('menu-user-name');
-      if (menuName) menuName.textContent = displayName || state.currentUser.username;
+      const data = await res.json();
+      if (data.user) {
+        state.currentUser = data.user;
+      } else {
+        state.currentUser.username = username;
+        state.currentUser.display_name = displayName;
+        state.currentUser.avatar_data = avatarData || null;
+      }
+      updateHeaderProfile();
       msgEl.textContent = 'Profile updated successfully!';
       msgEl.style.display = 'block';
+      showToast('Profile and avatar updated!', 'success');
       setTimeout(() => { closeUserProfileModal(); msgEl.style.display = 'none'; }, 1000);
     } else {
       const d = await res.json();
@@ -1075,18 +1165,33 @@ function closeUsersModal() {
 
 function renderUsersTable(users) {
   const tbody = document.getElementById('users-table-body');
-  tbody.innerHTML = users.map(u => `
-    <tr>
-      <td><strong>${escapeHtml(u.username)}</strong> ${u.display_name ? `(${escapeHtml(u.display_name)})` : ''}</td>
-      <td><span class="user-role-badge">${u.role.toUpperCase()}</span></td>
-      <td><span class="pane-protocol-badge">${u.auth_provider.toUpperCase()}</span></td>
-      <td>${u.is_active ? '<span class="text-success">Active</span>' : '<span class="text-danger">Disabled</span>'}</td>
-      <td class="text-muted">${new Date(u.created_at).toLocaleDateString()}</td>
-      <td>
-        <button class="btn btn-secondary btn-sm text-danger" onclick="deleteUser('${u.id}')">Delete</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = users.map(u => {
+    const avatarHtml = u.avatar_data && u.avatar_data.startsWith('data:image')
+      ? `<img src="${u.avatar_data}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px;">`
+      : `<span style="width: 24px; height: 24px; border-radius: 50%; background: var(--woofson-bg-active); border: 1px solid var(--woofson-border); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--woofson-accent); margin-right: 8px; vertical-align: middle;">${(u.username[0] || 'U').toUpperCase()}</span>`;
+
+    const roleName = u.role.toLowerCase() === 'admin' ? 'ADMIN' : u.role.toUpperCase();
+    return `
+      <tr>
+        <td>
+          <div style="display: flex; align-items: center;">
+            ${avatarHtml}
+            <div>
+              <strong>${escapeHtml(u.username)}</strong>
+              ${u.display_name && u.display_name !== u.username ? `<span class="text-muted text-sm" style="margin-left: 4px;">(${escapeHtml(u.display_name)})</span>` : ''}
+            </div>
+          </div>
+        </td>
+        <td><span class="user-role-badge">${roleName}</span></td>
+        <td><span class="pane-protocol-badge">${u.auth_provider.toUpperCase()}</span></td>
+        <td>${u.is_active ? '<span class="text-success">Active</span>' : '<span class="text-danger">Disabled</span>'}</td>
+        <td class="text-muted">${new Date(u.created_at).toLocaleDateString()}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm text-danger" onclick="deleteUser('${u.id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function openAddUserModal() {
