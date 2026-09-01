@@ -36,6 +36,7 @@ The Connections Manager is unified directly with SQLite RBAC, user profile manag
 | **High-FPS Tile Diffing** | `64×64 Dirty Sub-Rect Diffing Grid` | 99.8% bandwidth reduction over raw uncompressed framebuffers | ✅ **Completed (v0.2.0)** |
 | **Dynamic Resolution** | `MS-RDPEDISP Display Control Channel` | Live remote desktop resolution resize on panel/window change | ✅ **Completed (v0.2.0)** |
 | **Performance Presets** | `High Speed`, `Balanced`, `High Quality`, `Custom` | Configurable flags for wallpaper, drag, anim, themes, font smoothing | ✅ **Completed (v0.2.0)** |
+| **RDPDR Drive Redirection** | `Native FS Virtual Channel (\\tsclient\Dropbox)` | Redirects staging dropbox directly into Windows Explorer | ✅ **Completed (v0.2.0)** |
 | **Panel Reconnect Flow** | `Instant 1-Click Reconnect` | Clean disconnect card with instant reconnection shortcut | ✅ **Completed (v0.2.0)** |
 | **Reverse Proxy Usability** | `Subpaths, WSS, Forwarded Headers, ForwardAuth` | 100% flawless operation behind Nginx, Traefik, Caddy, CF Tunnels | 🚀 **Next Roadmap Priority (Phase 3)** |
 

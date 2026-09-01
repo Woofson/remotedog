@@ -38,6 +38,14 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
   * Integrated `ResizeObserver` on remote viewports.
   * Switching between 1-pane, 2-pane, 4-pane, or resizing the browser window dynamically instructs Windows via the **Display Update Virtual Channel (`MS-RDPEDISP`)** to reconfigure display resolution in real time without disconnecting.
 
+### 📁 Native RDPDR Drive Redirection (`\\tsclient\Dropbox`)
+* **Bi-Directional File Transfer with Windows Explorer**:
+  * Integrated `ironrdp-rdpdr` and `ironrdp-rdpdr-native` static virtual channels.
+  * Announces RemoteDog's `./data/staging` directory as a native redirected drive (`\\tsclient\Dropbox` or *"Dropbox on RemoteDog"* in "This PC").
+  * Files uploaded via the web interface or dragged onto any active RDP pane instantly appear in Windows File Explorer.
+  * Files dragged into `\\tsclient\Dropbox` inside Windows immediately appear in the RemoteDog Dropbox Drawer for local client download.
+  * Configurable per-connection toggle (`Drive Redirection (\\tsclient\Dropbox)`).
+
 ### 🛠️ RDP Experience Presets & Performance Tuning
 * **Configurable Performance Presets**:
   * 🚀 **High Speed (WAN / Low Latency)**: Disables wallpaper, full window drag, animations, and themes; optimizes compression.
