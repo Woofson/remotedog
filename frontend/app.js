@@ -1019,6 +1019,7 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
   }
 
   canvas.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
     const keysym = getKeySym(e);
     if (keysym !== 0) {
       sendKey(true, keysym);
