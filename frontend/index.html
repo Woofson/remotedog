@@ -126,6 +126,9 @@
           </div>
           <div class="pane-header-right">
             <span class="pane-fps-pill" id="pane-1-stats" style="display:none;">0 ms</span>
+            <button class="pane-btn" id="pane-1-kbd-btn" title="Keyboard Layout (Click to switch)" onclick="openPaneKbdMenu(event, 1)" style="font-size: 10px; font-weight: 700; padding: 2px 6px; font-family: var(--font-mono); letter-spacing: 0.5px;">
+              <span id="pane-1-kbd-label">🇳🇴 NO</span>
+            </button>
             <button class="pane-btn" title="Open SFTP Dropbox" onclick="openPaneDropbox(1)">
               <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
             </button>
@@ -173,6 +176,9 @@
           </div>
           <div class="pane-header-right">
             <span class="pane-fps-pill" id="pane-2-stats" style="display:none;">0 ms</span>
+            <button class="pane-btn" id="pane-2-kbd-btn" title="Keyboard Layout (Click to switch)" onclick="openPaneKbdMenu(event, 2)" style="font-size: 10px; font-weight: 700; padding: 2px 6px; font-family: var(--font-mono); letter-spacing: 0.5px;">
+              <span id="pane-2-kbd-label">🇳🇴 NO</span>
+            </button>
             <button class="pane-btn" title="Open SFTP Dropbox" onclick="openPaneDropbox(2)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg></button>
             <button class="pane-btn text-danger" title="Disconnect" onclick="disconnectPane(2)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
           </div>
@@ -195,6 +201,9 @@
             <span class="pane-protocol-badge" id="pane-3-proto" style="display:none;">SSH</span>
           </div>
           <div class="pane-header-right">
+            <button class="pane-btn" id="pane-3-kbd-btn" title="Keyboard Layout (Click to switch)" onclick="openPaneKbdMenu(event, 3)" style="font-size: 10px; font-weight: 700; padding: 2px 6px; font-family: var(--font-mono); letter-spacing: 0.5px;">
+              <span id="pane-3-kbd-label">🇳🇴 NO</span>
+            </button>
             <button class="pane-btn text-danger" title="Disconnect" onclick="disconnectPane(3)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
           </div>
         </div>
@@ -216,6 +225,9 @@
             <span class="pane-protocol-badge" id="pane-4-proto" style="display:none;">SSH</span>
           </div>
           <div class="pane-header-right">
+            <button class="pane-btn" id="pane-4-kbd-btn" title="Keyboard Layout (Click to switch)" onclick="openPaneKbdMenu(event, 4)" style="font-size: 10px; font-weight: 700; padding: 2px 6px; font-family: var(--font-mono); letter-spacing: 0.5px;">
+              <span id="pane-4-kbd-label">🇳🇴 NO</span>
+            </button>
             <button class="pane-btn text-danger" title="Disconnect" onclick="disconnectPane(4)"><svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
           </div>
         </div>
@@ -544,7 +556,23 @@
                 </label>
               </div>
 
-              <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group" style="grid-column: span 2;">
+                  <label style="font-size: 11px; font-weight: 600;">⌨️ Keyboard Layout & Locale</label>
+                  <select id="conn-rdp-keyboard-layout" class="form-input">
+                    <option value="no" selected>🇳🇴 Norwegian / Scandinavian (Standard Norsk QWERTY)</option>
+                    <option value="en_us">🇺🇸 English US (ANSI QWERTY)</option>
+                    <option value="en_gb">🇬🇧 English UK (ISO QWERTY)</option>
+                    <option value="sv">🇸🇪 Swedish (Svenska)</option>
+                    <option value="da">🇩🇰 Danish (Dansk)</option>
+                    <option value="fi">🇫🇮 Finnish (Suomi)</option>
+                    <option value="de">🇩🇪 German (Deutsch QWERTZ)</option>
+                    <option value="fr">🇫🇷 French (Français AZERTY)</option>
+                    <option value="es">🇪🇸 Spanish (Español)</option>
+                    <option value="it">🇮🇹 Italian (Italiano)</option>
+                    <option value="auto">🌐 Auto-Detect (Host Browser Locale)</option>
+                  </select>
+                </div>
                 <div class="form-group">
                   <label style="font-size: 11px; font-weight: 600;">TLS / SSL Certificate Trust</label>
                   <select id="conn-rdp-ignore-cert" class="form-input">

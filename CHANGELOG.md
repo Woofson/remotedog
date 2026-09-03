@@ -27,9 +27,18 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 * **Fixed Mouse Click Responsiveness**:
   * Separated `PointerFlags::MOVE` from button transitions according to MS-RDPBCGR (`TS_POINTER_EVENT`).
   * Sends pointer positioning ahead of button state changes (`LEFT_BUTTON`, `RIGHT_BUTTON`, `MIDDLE_BUTTON_OR_WHEEL`), ensuring 100% reliable clicks, double-clicks, dragging, and context menus.
-* **Full PS/2 Set 1 Hardware Scancode Keyboard Table**:
-  * Standard alphanumeric, navigation, symbol, modifier, and function keys (`F1-F12`) map directly to hardware scan codes.
-  * Dropped release events on fallback `UnicodeKeyboardEvent` and suppressed browser synthetic `e.repeat` to prevent duplicate typing.
+* **Full PS/2 Set 1 Hardware Scancode Keyboard Pipeline**:
+  * Standard alphanumeric, navigation, symbol, modifier, and function keys (`F1-F12`) map directly from browser `e.code` to hardware scan codes.
+  * Direct support for Scandinavian ISO keys (`æ`, `ø`, `å`, `< > |` on `IntlBackslash`, `§` on `Backquote`, `+ ?` on `Minus`, `\ `` on `Equal`, `- _` on `Slash`) and `AltGr` combinations (`@`, `£`, `$`, `€`, `{`, `[`, `]`, `}`, `\`, `|`).
+  * Seamless fallback to Unicode character injection for virtual/touch keyboards.
+
+### ⌨️ Multi-Language Keyboard Layout & Locale Switcher
+* **1-Click Pane Header Locale Switcher**:
+  * Added quick keyboard layout badges to all viewport panes (`[🇳🇴 NO]`, `[🇺🇸 US]`, `[🇬🇧 GB]`, `[🇸🇪 SE]`, `[🇩🇰 DK]`, `[🇫🇮 FI]`, `[🇩🇪 DE]`, `[🇫🇷 FR]`, `[🇪🇸 ES]`, `[🇮🇹 IT]`, `[🌐 Auto]`).
+  * Clicking the badge opens a quick-selection dropdown to switch layouts live during an active session.
+* **Per-Connection & Global Locale Preferences**:
+  * Added `Keyboard Layout & Locale` selector in the Connection Edit modal.
+  * Preserves default layout preferences in `localStorage`.
 
 ### 🔄 Live Dynamic Resolution (MS-RDPEDISP)
 * **Auto-Pane Initial Resolution**:

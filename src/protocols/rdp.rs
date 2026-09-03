@@ -30,6 +30,7 @@ pub struct RdpConnectionParams {
     pub font_smoothing: bool,
     pub staging_dir: Option<String>,
     pub enable_drive_redirection: bool,
+    pub keyboard_layout: Option<String>,
 }
 
 /// Map incoming browser mouse events (bitmask + coordinates) to IronRDP FastPath mouse events
@@ -293,6 +294,7 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
     }
 
     if params.enable_drive_redirection {
+        config_builder = config_builder.with_rdpdr(true);
         let staging_dir = params
             .staging_dir
             .clone()
@@ -424,13 +426,39 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
                             let _ = input_sender_rx.send(RdpInputEvent::FastPath(events));
                         }
                     } else if packet_type == 0x04 && data.len() >= 6 {
-                        // Key event: [0x04, down: u8, keysym: u32 (be)]
+                        // Key event: [0x04, down: u8, scancode: u8, extended: u8, unicode: u16 (be)]
                         let down = data[1] != 0;
-                        let keysym = u32::from_be_bytes([data[2], data[3], data[4], data[5]]);
+                        let scancode = data[2];
+                        let extended = data[3] != 0;
+                        let unicode = u16::from_be_bytes([data[4], data[5]]);
 
-                        let events = map_key_event(down, keysym);
-                        if !events.is_empty() {
-                            let _ = input_sender_rx.send(RdpInputEvent::FastPath(events));
+                        if scancode != 0 {
+                            let mut flags = if down {
+                                KeyboardFlags::empty()
+                            } else {
+                                KeyboardFlags::RELEASE
+                            };
+                            if extended {
+                                flags |= KeyboardFlags::EXTENDED;
+                            }
+                            let _ = input_sender_rx.send(RdpInputEvent::FastPath(smallvec![
+                                FastPathInputEvent::KeyboardEvent(flags, scancode)
+                            ]));
+                        } else if unicode != 0 {
+                            let flags = if down {
+                                KeyboardFlags::empty()
+                            } else {
+                                KeyboardFlags::RELEASE
+                            };
+                            let _ = input_sender_rx.send(RdpInputEvent::FastPath(smallvec![
+                                FastPathInputEvent::UnicodeKeyboardEvent(flags, unicode)
+                            ]));
+                        } else {
+                            let keysym = u32::from_be_bytes([data[2], data[3], data[4], data[5]]);
+                            let events = map_key_event(down, keysym);
+                            if !events.is_empty() {
+                                let _ = input_sender_rx.send(RdpInputEvent::FastPath(events));
+                            }
                         }
                     }
                 }

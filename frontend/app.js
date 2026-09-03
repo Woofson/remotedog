@@ -19,6 +19,145 @@ const state = {
   },
 };
 
+// ================= Keyboard Layouts & Hardware Scancodes =================
+const KEYBOARD_LAYOUTS = [
+  { id: 'no', code: 'no', name: 'Norwegian', flag: '🇳🇴', label: 'NO' },
+  { id: 'en_us', code: 'en_us', name: 'English (US)', flag: '🇺🇸', label: 'US' },
+  { id: 'en_gb', code: 'en_gb', name: 'English (UK)', flag: '🇬🇧', label: 'GB' },
+  { id: 'sv', code: 'sv', name: 'Swedish', flag: '🇸🇪', label: 'SE' },
+  { id: 'da', code: 'da', name: 'Danish', flag: '🇩🇰', label: 'DK' },
+  { id: 'fi', code: 'fi', name: 'Finnish', flag: '🇫🇮', label: 'FI' },
+  { id: 'de', code: 'de', name: 'German', flag: '🇩🇪', label: 'DE' },
+  { id: 'fr', code: 'fr', name: 'French', flag: '🇫🇷', label: 'FR' },
+  { id: 'es', code: 'es', name: 'Spanish', flag: '🇪🇸', label: 'ES' },
+  { id: 'it', code: 'it', name: 'Italian', flag: '🇮🇹', label: 'IT' },
+  { id: 'auto', code: 'auto', name: 'Auto-Detect', flag: '🌐', label: 'Auto' },
+];
+
+const CODE_TO_SCANCODE = {
+  // Row 1 (Esc & Function Keys)
+  Escape: [0x01, false],
+  F1: [0x3b, false],
+  F2: [0x3c, false],
+  F3: [0x3d, false],
+  F4: [0x3e, false],
+  F5: [0x3f, false],
+  F6: [0x40, false],
+  F7: [0x41, false],
+  F8: [0x42, false],
+  F9: [0x43, false],
+  F10: [0x44, false],
+  F11: [0x57, false],
+  F12: [0x58, false],
+
+  // Row 2 (Numbers)
+  Backquote: [0x29, false],     // § | on NO / ` ~ on US
+  Digit1: [0x02, false],
+  Digit2: [0x03, false],
+  Digit3: [0x04, false],
+  Digit4: [0x05, false],
+  Digit5: [0x06, false],
+  Digit6: [0x07, false],
+  Digit7: [0x08, false],
+  Digit8: [0x09, false],
+  Digit9: [0x0a, false],
+  Digit0: [0x0b, false],
+  Minus: [0x0c, false],         // + ? on NO / - _ on US
+  Equal: [0x0d, false],         // \ ` on NO / = + on US
+  Backspace: [0x0e, false],
+
+  // Row 3 (QWERTY top)
+  Tab: [0x0f, false],
+  KeyQ: [0x10, false],
+  KeyW: [0x11, false],
+  KeyE: [0x12, false],
+  KeyR: [0x13, false],
+  KeyT: [0x14, false],
+  KeyY: [0x15, false],
+  KeyU: [0x16, false],
+  KeyI: [0x17, false],
+  KeyO: [0x18, false],
+  KeyP: [0x19, false],
+  BracketLeft: [0x1a, false],   // Å on NO / [ { on US
+  BracketRight: [0x1b, false],  // ¨ ^ ~ on NO / ] } on US
+
+  // Row 4 (Home row)
+  CapsLock: [0x3a, false],
+  KeyA: [0x1e, false],
+  KeyS: [0x1f, false],
+  KeyD: [0x20, false],
+  KeyF: [0x21, false],
+  KeyG: [0x22, false],
+  KeyH: [0x23, false],
+  KeyJ: [0x24, false],
+  KeyK: [0x25, false],
+  KeyL: [0x26, false],
+  Semicolon: [0x27, false],     // Ø on NO / ; : on US
+  Quote: [0x28, false],         // Æ on NO / ' " on US
+  Backslash: [0x2b, false],     // ' * on NO / \ | on US
+  Enter: [0x1c, false],
+
+  // Row 5 (Bottom row)
+  ShiftLeft: [0x2a, false],
+  IntlBackslash: [0x56, false], // < > | on ISO / European / NO keyboards
+  KeyZ: [0x2c, false],
+  KeyX: [0x2d, false],
+  KeyC: [0x2e, false],
+  KeyV: [0x2f, false],
+  KeyB: [0x30, false],
+  KeyN: [0x31, false],
+  KeyM: [0x32, false],
+  Comma: [0x33, false],
+  Period: [0x34, false],
+  Slash: [0x35, false],         // - _ on NO / / ? on US
+  ShiftRight: [0x36, false],
+
+  // Bottom Row / Controls
+  ControlLeft: [0x1d, false],
+  MetaLeft: [0x5b, true],       // Windows / Cmd Left
+  AltLeft: [0x38, false],
+  Space: [0x39, false],
+  AltRight: [0x38, true],       // AltGr
+  AltGraph: [0x38, true],       // AltGr alias
+  MetaRight: [0x5c, true],
+  ContextMenu: [0x5d, true],
+  ControlRight: [0x1d, true],
+
+  // Navigation & Editing (Extended E0)
+  Insert: [0x52, true],
+  Delete: [0x53, true],
+  Home: [0x47, true],
+  End: [0x4f, true],
+  PageUp: [0x49, true],
+  PageDown: [0x51, true],
+  ArrowUp: [0x48, true],
+  ArrowDown: [0x50, true],
+  ArrowLeft: [0x4b, true],
+  ArrowRight: [0x4d, true],
+  PrintScreen: [0x37, true],
+  ScrollLock: [0x46, false],
+  Pause: [0x45, false],
+  NumLock: [0x45, false],
+
+  // Numpad
+  Numpad0: [0x52, false],
+  Numpad1: [0x4f, false],
+  Numpad2: [0x50, false],
+  Numpad3: [0x51, false],
+  Numpad4: [0x4b, false],
+  Numpad5: [0x4c, false],
+  Numpad6: [0x4d, false],
+  Numpad7: [0x47, false],
+  Numpad8: [0x48, false],
+  Numpad9: [0x49, false],
+  NumpadDecimal: [0x53, false],
+  NumpadDivide: [0x35, true],
+  NumpadMultiply: [0x37, false],
+  NumpadSubtract: [0x4a, false],
+  NumpadAdd: [0x4e, false],
+  NumpadEnter: [0x1c, true],
+};
+
 // ================= API Helper =================
 async function apiFetch(url, options = {}) {
   const headers = Object.assign({}, options.headers || {});
@@ -36,6 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupKeyboardShortcuts();
   setupGlobalDragAndDrop();
   initPaneStyles();
+  initAllPaneKbdBadges();
   await checkAuth();
 });
 
@@ -551,6 +691,8 @@ function openAddConnectionModal() {
   if (ignoreCertEl) ignoreCertEl.value = 'true';
   const domainEl = document.getElementById('conn-rdp-domain');
   if (domainEl) domainEl.value = '';
+  const kbdEl = document.getElementById('conn-rdp-keyboard-layout');
+  if (kbdEl) kbdEl.value = localStorage.getItem('rd_default_kbd_layout') || 'no';
 
   const perfPresetEl = document.getElementById('conn-rdp-perf-preset');
   if (perfPresetEl) perfPresetEl.value = 'high_speed';
@@ -599,6 +741,8 @@ function openEditConnectionModal(id) {
   if (ignoreCertEl) ignoreCertEl.value = (settings.ignore_cert !== false) ? 'true' : 'false';
   const domainEl = document.getElementById('conn-rdp-domain');
   if (domainEl) domainEl.value = settings.domain || '';
+  const editKbdEl = document.getElementById('conn-rdp-keyboard-layout');
+  if (editKbdEl) editKbdEl.value = settings.keyboard_layout || 'no';
 
   const perfPresetEl = document.getElementById('conn-rdp-perf-preset');
   if (perfPresetEl) perfPresetEl.value = settings.perf_preset || 'high_speed';
@@ -690,6 +834,7 @@ async function handleSaveConnection(e) {
   const rdpSettings = {
     ignore_cert: document.getElementById('conn-rdp-ignore-cert') ? document.getElementById('conn-rdp-ignore-cert').value === 'true' : true,
     domain: document.getElementById('conn-rdp-domain') ? document.getElementById('conn-rdp-domain').value.trim() || null : null,
+    keyboard_layout: document.getElementById('conn-rdp-keyboard-layout') ? document.getElementById('conn-rdp-keyboard-layout').value : 'no',
     perf_preset: document.getElementById('conn-rdp-perf-preset') ? document.getElementById('conn-rdp-perf-preset').value : 'high_speed',
     color_depth: document.getElementById('conn-rdp-color-depth') ? parseInt(document.getElementById('conn-rdp-color-depth').value, 10) : 32,
     disable_wallpaper: document.getElementById('conn-rdp-disable-wallpaper') ? document.getElementById('conn-rdp-disable-wallpaper').checked : true,
@@ -1113,56 +1258,42 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
     e.preventDefault();
   }, { passive: false });
 
-  // Key Inputs (RFB Keysyms)
-  function sendKey(down, keysym) {
+  // Key Inputs: Direct PS/2 Hardware Scancodes (with E0 extended flag) + Unicode fallback
+  function sendKey(down, e) {
     if (ws.readyState !== WebSocket.OPEN) return;
     if (pane.conn && pane.conn.view_only) return;
+
+    let scancode = 0;
+    let extended = 0;
+    if (e.code && CODE_TO_SCANCODE[e.code]) {
+      const [sc, ext] = CODE_TO_SCANCODE[e.code];
+      scancode = sc;
+      extended = ext ? 1 : 0;
+    }
+
+    const unicode = (e.key && e.key.length === 1) ? e.key.charCodeAt(0) : 0;
+
     const buf = new ArrayBuffer(6);
     const dv = new DataView(buf);
     dv.setUint8(0, 0x04); // KEY_EVENT
     dv.setUint8(1, down ? 1 : 0);
-    dv.setUint32(2, keysym, false);
+    dv.setUint8(2, scancode);
+    dv.setUint8(3, extended);
+    dv.setUint16(4, unicode, false);
     ws.send(buf);
   }
 
-  function getKeySym(e) {
-    switch (e.key) {
-      case 'Backspace': return 0xff08;
-      case 'Tab': return 0xff09;
-      case 'Enter': return 0xff0d;
-      case 'Escape': return 0xff1b;
-      case 'Delete': return 0xffff;
-      case 'Home': return 0xff50;
-      case 'ArrowLeft': return 0xff51;
-      case 'ArrowUp': return 0xff52;
-      case 'ArrowRight': return 0xff53;
-      case 'ArrowDown': return 0xff54;
-      case 'PageUp': return 0xff55;
-      case 'PageDown': return 0xff56;
-      case 'End': return 0xff57;
-      case 'Shift': return 0xffe1;
-      case 'Control': return 0xffe3;
-      case 'Meta': return 0xffeb;
-      case 'Alt': return 0xffe9;
-      default:
-        if (e.key.length === 1) return e.key.charCodeAt(0);
-        return 0;
-    }
-  }
-
   canvas.addEventListener('keydown', (e) => {
-    if (e.repeat) return;
-    const keysym = getKeySym(e);
-    if (keysym !== 0) {
-      sendKey(true, keysym);
+    sendKey(true, e);
+    // Prevent default browser shortcuts except developer tools
+    if (e.key !== 'F12' && !(e.ctrlKey && e.shiftKey && e.key === 'I')) {
       e.preventDefault();
     }
   });
 
   canvas.addEventListener('keyup', (e) => {
-    const keysym = getKeySym(e);
-    if (keysym !== 0) {
-      sendKey(false, keysym);
+    sendKey(false, e);
+    if (e.key !== 'F12' && !(e.ctrlKey && e.shiftKey && e.key === 'I')) {
       e.preventDefault();
     }
   });
@@ -1978,6 +2109,102 @@ function openPaneSettingsMenu(e, paneIndex) {
     popup.style.position = 'fixed';
     popup.style.top = `${rect.bottom + 4}px`;
     popup.style.left = `${Math.min(window.innerWidth - 280, Math.max(10, rect.left))}px`;
+  }
+
+  const closeHandler = (evt) => {
+    if (!popup.contains(evt.target) && (!btn || !btn.contains(evt.target))) {
+      popup.remove();
+      document.removeEventListener('click', closeHandler);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeHandler), 10);
+}
+
+// ================= Keyboard Layout & Locale Management =================
+function getPaneKbdLayout(paneIndex) {
+  const pane = state.panes[paneIndex];
+  if (pane && pane.conn && pane.conn.settings_json) {
+    try {
+      const s = JSON.parse(pane.conn.settings_json);
+      if (s.keyboard_layout) return s.keyboard_layout;
+    } catch (e) {}
+  }
+  return localStorage.getItem(`rd_pane_kbd_${paneIndex}`) || localStorage.getItem('rd_default_kbd_layout') || 'no';
+}
+
+function setPaneKbdLayout(paneIndex, layoutId) {
+  localStorage.setItem(`rd_pane_kbd_${paneIndex}`, layoutId);
+  localStorage.setItem('rd_default_kbd_layout', layoutId);
+  updatePaneKbdBadge(paneIndex);
+  const layout = KEYBOARD_LAYOUTS.find(l => l.id === layoutId);
+  showToast(`Keyboard layout set to ${layout ? layout.name : layoutId.toUpperCase()}`);
+}
+
+function updatePaneKbdBadge(paneIndex) {
+  const layoutId = getPaneKbdLayout(paneIndex);
+  const layout = KEYBOARD_LAYOUTS.find(l => l.id === layoutId) || KEYBOARD_LAYOUTS[0];
+  const labelEl = document.getElementById(`pane-${paneIndex}-kbd-label`);
+  const btnEl = document.getElementById(`pane-${paneIndex}-kbd-btn`);
+  if (labelEl) {
+    labelEl.textContent = `${layout.flag} ${layout.label}`;
+  }
+  if (btnEl) {
+    btnEl.title = `Keyboard Layout: ${layout.name} (${layout.label}) — Click to change`;
+  }
+}
+
+function initAllPaneKbdBadges() {
+  for (let i = 1; i <= 4; i++) {
+    updatePaneKbdBadge(i);
+  }
+}
+
+function openPaneKbdMenu(e, paneIndex) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  document.getElementById('pane-kbd-dropdown')?.remove();
+
+  const currentLayout = getPaneKbdLayout(paneIndex);
+
+  const popup = document.createElement('div');
+  popup.id = 'pane-kbd-dropdown';
+  popup.className = 'pane-settings-dropdown';
+
+  popup.innerHTML = `
+    <div style="padding: 8px 12px; font-weight: 700; font-size: 11px; color: var(--woofson-accent); background: var(--woofson-bg-void); border-bottom: 1px solid var(--woofson-border); display: flex; justify-content: space-between; align-items: center;">
+      <span style="display: flex; align-items: center; gap: 6px;">
+        ⌨️ Keyboard Layout (Pane ${paneIndex})
+      </span>
+      <span style="font-size: 11px; color: var(--woofson-text-dim); cursor: pointer;" onclick="document.getElementById('pane-kbd-dropdown')?.remove();">✕</span>
+    </div>
+    <div style="padding: 6px; display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto;">
+      ${KEYBOARD_LAYOUTS.map(l => {
+        const isSelected = currentLayout === l.id;
+        return `
+          <button type="button" class="btn btn-sm ${isSelected ? 'active' : ''}" 
+                  style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 11px; width: 100%; text-align: left; justify-content: flex-start;"
+                  onclick="setPaneKbdLayout(${paneIndex}, '${l.id}'); document.getElementById('pane-kbd-dropdown')?.remove();">
+            <span style="font-size: 14px;">${l.flag}</span>
+            <span style="flex: 1; ${isSelected ? 'font-weight: 700; color: var(--woofson-accent);' : ''}">${l.name}</span>
+            <span style="font-family: var(--font-mono); font-size: 10px; color: var(--woofson-text-dim);">${l.label}</span>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+
+  const btn = document.getElementById(`pane-${paneIndex}-kbd-btn`);
+  if (btn) {
+    const rect = btn.getBoundingClientRect();
+    popup.style.position = 'fixed';
+    popup.style.top = `${rect.bottom + 4}px`;
+    popup.style.left = `${Math.min(window.innerWidth - 220, Math.max(10, rect.left - 80))}px`;
+    popup.style.width = '220px';
+    popup.style.zIndex = '1000';
   }
 
   const closeHandler = (evt) => {
