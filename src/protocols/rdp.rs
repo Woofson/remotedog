@@ -360,7 +360,7 @@ pub async fn handle_rdp_session(socket: WebSocket, params: RdpConnectionParams) 
         });
 
     let (mut ws_tx, mut ws_rx) = socket.split();
-    let (ws_out_tx, mut ws_out_rx) = mpsc::channel::<Message>(128);
+    let (ws_out_tx, mut ws_out_rx) = mpsc::channel::<Message>(512);
 
     let is_running = Arc::new(AtomicBool::new(true));
     let is_running_ws_writer = Arc::clone(&is_running);
@@ -600,14 +600,21 @@ async fn process_and_send_frame(
         return Ok(());
     }
 
-    // Otherwise, stream only the dirty tiles (typically 1-8 tiles = 16-128 KB instead of 8.3 MB!)
+    // Otherwise, stream all dirty tiles packed into ONE single atomic batch packet (type 0x03)
+    let mut total_tile_bytes = 3;
+    for &(_, _, tw, th) in &dirty_tiles {
+        total_tile_bytes += 8 + tw * th * 4;
+    }
+
+    let mut batch_pkt = Vec::with_capacity(total_tile_bytes);
+    batch_pkt.push(0x03); // Batch Tiles Packet Type
+    batch_pkt.extend_from_slice(&(dirty_tiles.len() as u16).to_be_bytes());
+
     for (tile_x, tile_y, tile_w, tile_h) in dirty_tiles {
-        let mut tile_pkt = Vec::with_capacity(9 + tile_w * tile_h * 4);
-        tile_pkt.push(0x01);
-        tile_pkt.extend_from_slice(&(tile_x as u16).to_be_bytes());
-        tile_pkt.extend_from_slice(&(tile_y as u16).to_be_bytes());
-        tile_pkt.extend_from_slice(&(tile_w as u16).to_be_bytes());
-        tile_pkt.extend_from_slice(&(tile_h as u16).to_be_bytes());
+        batch_pkt.extend_from_slice(&(tile_x as u16).to_be_bytes());
+        batch_pkt.extend_from_slice(&(tile_y as u16).to_be_bytes());
+        batch_pkt.extend_from_slice(&(tile_w as u16).to_be_bytes());
+        batch_pkt.extend_from_slice(&(tile_h as u16).to_be_bytes());
 
         for row in 0..tile_h {
             let offset = (tile_y + row) * w + tile_x;
@@ -616,18 +623,18 @@ async fn process_and_send_frame(
                 let r = ((pixel >> 16) & 0xFF) as u8;
                 let g = ((pixel >> 8) & 0xFF) as u8;
                 let b = (pixel & 0xFF) as u8;
-                tile_pkt.push(r);
-                tile_pkt.push(g);
-                tile_pkt.push(b);
-                tile_pkt.push(255);
+                batch_pkt.push(r);
+                batch_pkt.push(g);
+                batch_pkt.push(b);
+                batch_pkt.push(255);
 
                 prev_frame[offset + col] = pixel;
             }
         }
+    }
 
-        if ws_tx.send(Message::Binary(tile_pkt)).await.is_err() {
-            return Err(());
-        }
+    if ws_tx.send(Message::Binary(batch_pkt)).await.is_err() {
+        return Err(());
     }
 
     Ok(())

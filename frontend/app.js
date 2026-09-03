@@ -1165,7 +1165,7 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
       const type = dv.getUint8(0);
 
       if (type === 0x01) {
-        // Frame Tile
+        // Frame Tile: [0x01, x: u16, y: u16, w: u16, h: u16, rgba...]
         const x = dv.getUint16(1, false);
         const y = dv.getUint16(3, false);
         const w = dv.getUint16(5, false);
@@ -1174,6 +1174,25 @@ function setupGraphicsProtocol(pane, ws, bodyEl) {
         const pixelBytes = new Uint8ClampedArray(e.data, 9, w * h * 4);
         const imgData = new ImageData(pixelBytes, w, h);
         ctx.putImageData(imgData, x, y);
+      } else if (type === 0x03) {
+        // Atomic Batch Tiles: [0x03, tile_count: u16, (x: u16, y: u16, w: u16, h: u16, rgba...)*count]
+        const tileCount = dv.getUint16(1, false);
+        let offset = 3;
+        for (let i = 0; i < tileCount; i++) {
+          if (offset + 8 > e.data.byteLength) break;
+          const x = dv.getUint16(offset, false);
+          const y = dv.getUint16(offset + 2, false);
+          const w = dv.getUint16(offset + 4, false);
+          const h = dv.getUint16(offset + 6, false);
+          offset += 8;
+
+          const byteLen = w * h * 4;
+          if (offset + byteLen > e.data.byteLength) break;
+          const pixelBytes = new Uint8ClampedArray(e.data, offset, byteLen);
+          const imgData = new ImageData(pixelBytes, w, h);
+          ctx.putImageData(imgData, x, y);
+          offset += byteLen;
+        }
       } else if (type === 0x02) {
         // CopyRect
         const x = dv.getUint16(1, false);
